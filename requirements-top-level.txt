@@ -10,5 +10,6 @@ rpy2
 scikit-image
 scipy
 seaborn
+skimage
 xarray
 xlrd
