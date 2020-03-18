@@ -27,7 +27,8 @@ from python_for_imscroll import binding_kinetics
 
 
 def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
-                            save_dir: Path = Path(), save_format: str = 'svg'):
+                            save_dir: Path = Path(), save_format: str = 'svg',
+                            time_offset: float = 0):
     """Take dataset of one molecule and plot time trajectory.
 
     Each subplot corresponds to one channel (color).
@@ -48,17 +49,27 @@ def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
         plt.subplot(len(channel_list), 1, i)
         intensity = molecule_data['intensity'].sel(channel=i_channel)
         vit = molecule_data['viterbi_path'].sel(channel=i_channel, state='position')
-        plt.plot(intensity.time, intensity, color=i_channel)
-        plt.plot(vit.time, vit, color='black', linewidth=2)
+        plt.plot(intensity.time + time_offset, intensity, color=i_channel)
+        plt.plot(vit.time + time_offset, vit, color='black', linewidth=2)
         if plt.ylim()[0] > 0:
             plt.ylim(bottom=0)
-        plt.xlim((0, molecule_data.time.max()))
+        plt.ylim(plt.ylim())
+        if time_offset:
+            ax = plt.gca()
+            plt.fill([0, time_offset, time_offset, 0],
+                    [plt.ylim()[0], plt.ylim()[0], plt.ylim()[1], plt.ylim()[1]],
+                    '#e4e4e4')
+        plt.xlim((0, molecule_data.time.max() + time_offset))
 
     fig.text(0.04, 0.4, 'Intensity', ha='center', fontsize=16, rotation='vertical')
     plt.xlabel('time (s)', fontsize=16)
     plt.rcParams['svg.fonttype'] = 'none'
-    plt.savefig(save_dir / ('molecule{}.{}'.format(molecule_number, save_format)),
-                Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
+    if time_offset:
+        plt.savefig(save_dir / ('molecule{}_shifted.{}'.format(molecule_number, save_format)),
+                    Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
+    else:
+        plt.savefig(save_dir / ('molecule{}.{}'.format(molecule_number, save_format)),
+                    Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
     plt.close()
 
 
