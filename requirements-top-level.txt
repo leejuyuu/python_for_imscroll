@@ -9,6 +9,6 @@ PySide2
 rpy2
 scipy
 seaborn
-skimage
+scikit-image
 xarray
 xlrd
