@@ -1,7 +1,6 @@
 from pathlib import Path
 import scipy.io as sio
 import numpy as np
-import cv2
 from skimage import exposure
 import skimage.io
 from python_for_imscroll import binding_kinetics
@@ -41,10 +40,12 @@ def read_coordinate_sequences(int_corrected_path, channel):
 
 
 def main():
-    aoi = 22
-    datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
-    header_file_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/header.mat')
-    filestr = 'L2'
+    aoi = 7
+    # datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
+    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317imscroll/')
+    # header_file_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/header.mat')
+    header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/header.mat')
+    filestr = 'L5_02_03'
     int_corrected_path = datapath / (filestr + '_intcorrected.dat')
     try:
         all_data, AOI_categories = binding_kinetics.load_all_data(datapath
@@ -87,7 +88,7 @@ def main():
                 sub_img = img[y - rad:y + rad + 1,
                               x - rad:x + rad + 1]
                 im = exposure.rescale_intensity(sub_img,
-                                           in_range=(600, 950),
+                                           in_range=(700, 2500),
                                            out_range='uint8')
                 print(sub_img.shape)
                 arr = np.zeros((*sub_img.shape, 3), dtype='uint8')
