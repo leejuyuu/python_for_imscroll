@@ -82,15 +82,15 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
         dwells = binding_kinetics.extract_first_binding_time(interval_list)
         dwells['duration'] += time_offset
         max_time += time_offset
-        interval_censor_table = np.zeros((len(dwells.duration) + n_right_censored,
+        interval_censor_table = np.zeros((len(dwells.duration),
                                           2))
 
         interval_censor_table[0:len(dwells.duration), 0] = dwells.duration.values
         interval_censor_table[0:len(dwells.duration), 1] = xr.where(dwells.event_observed,
                                                                     1,
                                                                     2).values
-        interval_censor_table[len(dwells.duration):, 0] = max_time
-        interval_censor_table[len(dwells.duration):, 1] = 0
+        # interval_censor_table[len(dwells.duration):, 0] = max_time
+        # interval_censor_table[len(dwells.duration):, 1] = 0
         df = pd.DataFrame(interval_censor_table, columns=['time', 'status'])
 
         if len(dwells.duration) == 0:
