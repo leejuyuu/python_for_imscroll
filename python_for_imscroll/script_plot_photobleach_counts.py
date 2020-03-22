@@ -12,7 +12,7 @@ def main():
     # ax = sns.barplot(x='Category', y='Counts', data=dfs, ci=None)
     # dfs.plot(x='Category', y='Counts', kind='bar', ax=ax)
 
-    ax.bar(dfs.Category, dfs.Counts, width=0.4)
+    ax.bar(dfs.Category, dfs.Counts, width=0.4, edgecolor='black', fill=False)
     ax.set_xlim((-0.5, 1.5))
     ax.set_ylim((0, 240))
     ax.set_ylabel('Molecule counts', fontsize=16)
