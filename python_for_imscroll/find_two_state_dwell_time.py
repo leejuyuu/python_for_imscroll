@@ -123,7 +123,7 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
     log_var = robjects.r('exreg["var"]')[0].item()
     k = np.exp(-intercept)
     tau_ci = np.exp(intercept + np.array([-1, 1])*log_var)
-    x = np.linspace(0, time[-1], time[-1]*10)
+    x = np.linspace(0, time[-1], int(round(time[-1]*10)))
     y = np.exp(-k*x)
 
     plt.step(time, surv, where='post')
