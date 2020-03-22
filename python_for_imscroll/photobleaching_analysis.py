@@ -32,20 +32,14 @@ def exclude_inintial_no_binding_aois(intervals):
 
 def main():
     # xlspath = Path('D:/TYL/PriA_project/Analysis_Results/20190917/20190917parameterFile.xlsx')
-    xlspath = Path('/mnt/linuxData/Research/PriA_project/analysis_result/20191002/20191002parameterFile.xlsx')
+    xlspath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317parameterFile.xlsx')
 
     datapath = imscrollIO.def_data_path()
     # datapath = Path('/mnt/linuxData/Research/PriA_project/analysis_result/20190911/20190911imscroll')
-    sheet_list = ['L7']
-    specified_n_state = 1
-    state_list = ['low', 'high']
-    on_off_str = ['on', 'off']
-    obs_off_str = ['obs', 'off']
-    im_format = 'svg'
+    sheet_list = ['L5_pb']
     for i_sheet in sheet_list:
         dfs = pd.read_excel(xlspath, sheet_name=i_sheet)
         nFiles = dfs.shape[0]
-        interval_list = []
         total_number = 0
         total_cat = {}
         for iFile in range(0, nFiles):
