@@ -1,9 +1,12 @@
 from pathlib import Path
 import numpy as np
+import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 from python_for_imscroll import binding_kinetics, visualization
 
 def main():
-    datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20191127/20191127imscroll/')
+    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20191127/20191127imscroll/')
     filestr = 'L2_02_01'
     result = {'red': [],
                   'green': []}
@@ -31,7 +34,17 @@ def main():
             print(pts)
             result[channel].append(np.mean(pts)/total_num)
     print(result)
-
+    dfs = pd.DataFrame(list(zip(result['green'], result['red'])),
+                       columns=['1 nM GstPriA', '70 nM SaDnaD'])
+    fig, ax = plt.subplots(figsize=(4, 4.8))
+    sns.pointplot(data=dfs, ci='sd', join=False, capsize=0.05)
+    sns.stripplot(data=dfs, ax=ax, color='gray', marker='X')
+    ax.set_ylim(bottom=0)
+    ax.set_ylabel('Colocalized fraction', fontsize=18)
+    ax.set_yticks(np.arange(0, 0.5, 0.1))
+    ax.tick_params(labelsize=14)
+    fig.savefig(datapath / 'temp_colocalization.svg', format='svg', Transparent=True,
+                dpi=300, bbox_inches='tight')
 
 
 if __name__ == '__main__':
