@@ -43,6 +43,7 @@ def main():
     ax.set_ylabel('Colocalized fraction', fontsize=18)
     ax.set_yticks(np.arange(0, 0.5, 0.1))
     ax.tick_params(labelsize=14)
+    plt.rcParams['svg.fonttype'] = 'none'
     fig.savefig(datapath / 'temp_colocalization.svg', format='svg', Transparent=True,
                 dpi=300, bbox_inches='tight')
 
