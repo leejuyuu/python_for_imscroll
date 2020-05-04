@@ -15,7 +15,7 @@ def test_read_glimpse_image():
 
 
 def test_image_sequence_class():
-    image_path = pathlib.Path(__file__).parent() / 'fake_im/'
+    image_path = pathlib.Path(__file__).parent / 'test_data/fake_im/'
     image_sequence = imp.ImageSequence(image_path)
     assert image_sequence.width == 600
     assert image_sequence.height == 400
