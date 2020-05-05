@@ -1,9 +1,6 @@
 from pathlib import Path
 import scipy.io as sio
 import numpy as np
-from skimage import exposure
-import skimage.io
-from python_for_imscroll import binding_kinetics
 
 
 
@@ -17,25 +14,24 @@ class ImageSequence:
         self.width = header_file['vid']['width'][0, 0].item()
         self.height = header_file['vid']['height'][0, 0].item()
         self.length = header_file['vid']['nframes'][0, 0].item()
+        self._image_path = image_path
 
-
-def load_image_one_frame(frame, header_file_path):
-    header_file = sio.loadmat(header_file_path)
-    offset = header_file['vid']['offset'][0, 0].squeeze()
-    file_number = header_file['vid']['filenumber'][0, 0].squeeze()
-    width = header_file['vid']['width'][0, 0].item()
-    height = header_file['vid']['height'][0, 0].item()
-    print(width, height)
-    n_pixels = width * height
-    image_file_path = header_file_path.parent / '{}.glimpse'.format(file_number[frame - 1])
-    dt = np.dtype('>i2')
-    print(dt.name)
-
-    arr = np.fromfile(image_file_path, dtype='>i2', count=n_pixels, offset=offset[frame - 1])
-    print(arr.shape)
-    arr2 = np.reshape(arr, (height, width))
-    arr2 = np.transpose(arr2)
-    print(arr2.shape)
-    arr2 += 2**15
-    print(arr2[0])
-    return arr2
+    def get_one_frame(self, frame):
+        """
+        Return one frame image in the sequence.
+        """
+        file_number = self._file_number[frame]
+        offset = self._offset[frame]
+        image_file_path = self._image_path / '{}.glimpse'.format(file_number)
+        image = np.fromfile(image_file_path,
+                            dtype='>i2',
+                            count=(self.width * self.height),
+                            offset=offset)
+        image = np.reshape(image, (self.width, self.height))
+        # The glimpse saved image is U16 integer - 2**15 and saved in I16 format.
+        # To recover the U16 integers, we need to add 2**15 back, but we cannot
+        # do this directly since the image is read as I16 integer, adding 2**15
+        # will cause overflow. Need to cast to larger container (at least 32 bit)
+        # first.
+        image = image.astype(int) + 2**15
+        return image
