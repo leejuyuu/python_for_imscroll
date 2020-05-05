@@ -8,10 +8,18 @@ row.
 
 """
 import pathlib
+import numpy as np
 from python_for_imscroll import image_processing as imp
 
 def test_read_glimpse_image():
-    pass
+    image_path = pathlib.Path(__file__).parent / 'test_data/fake_im/'
+    image_sequence = imp.ImageSequence(image_path)
+    n_pixels = image_sequence.width * image_sequence.height
+    for i_frame in range(image_sequence.length):
+        image = image_sequence.get_one_frame(i_frame)
+        true_image = np.reshape(np.arange(i_frame + 1, i_frame + n_pixels + 1),
+                                (image_sequence.width, image_sequence.height))
+        np.testing.assert_equal(true_image, image)
 
 
 def test_image_sequence_class():
