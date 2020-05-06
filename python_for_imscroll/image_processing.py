@@ -16,10 +16,17 @@ class ImageSequence:
         self.length = header_file['vid']['nframes'][0, 0].item()
         self._image_path = image_path
 
-    def get_one_frame(self, frame):
+    def get_one_frame(self, frame: int):
         """
         Return one frame image in the sequence.
         """
+        if not (isinstance(frame, int) and frame >= 0):
+            raise ValueError('Frame number must be positive integers or 0.')
+        if frame >= self.length:
+            err_str = 'Frame number ({}) exceeds sequence length - 1 ({})'.format(self.length,
+                                                                                  self.length - 1)
+            raise ValueError(err_str)
+
         file_number = self._file_number[frame]
         offset = self._offset[frame]
         image_file_path = self._image_path / '{}.glimpse'.format(file_number)

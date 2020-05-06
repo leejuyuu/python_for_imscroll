@@ -9,6 +9,7 @@ row.
 """
 import pathlib
 import numpy as np
+import pytest
 from python_for_imscroll import image_processing as imp
 
 def test_read_glimpse_image():
@@ -21,6 +22,19 @@ def test_read_glimpse_image():
                                 (image_sequence.width, image_sequence.height))
         np.testing.assert_equal(true_image, image)
 
+    with pytest.raises(ValueError) as exception_info:
+        image_sequence.get_one_frame(-1)
+        assert exception_info.value == 'Frame number must be positive integers or 0'
+
+    with pytest.raises(ValueError) as exception_info:
+        image_sequence.get_one_frame(1.1)
+        assert exception_info.value == 'Frame number must be positive integers or 0'
+
+    with pytest.raises(ValueError) as exception_info:
+        image_sequence.get_one_frame(image_sequence.length)
+        assert (exception_info.value
+                == 'Frame number ({}) exceeds sequence length - 1 ({})'.format(image_sequence.length,
+                                                                               image_sequence.length - 1))
 
 def test_image_sequence_class():
     image_path = pathlib.Path(__file__).parent / 'test_data/fake_im/'
