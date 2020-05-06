@@ -42,3 +42,6 @@ class ImageSequence:
         # first.
         image = image.astype(int) + 2**15
         return image
+
+    def __iter__(self):
+        return (self.get_one_frame(frame) for frame in range(self.length))

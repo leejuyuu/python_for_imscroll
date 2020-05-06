@@ -42,3 +42,13 @@ def test_image_sequence_class():
     assert image_sequence.width == 300
     assert image_sequence.height == 200
     assert image_sequence.length == 20
+
+
+def test_iter_over_image_sequece():
+    image_path = pathlib.Path(__file__).parent / 'test_data/fake_im/'
+    image_sequence = imp.ImageSequence(image_path)
+    n_pixels = image_sequence.width * image_sequence.height
+    for i_frame, i_frame_image in enumerate(image_sequence):
+        true_image = np.reshape(np.arange(i_frame + 1, i_frame + n_pixels + 1),
+                                (image_sequence.width, image_sequence.height))
+        np.testing.assert_equal(true_image, i_frame_image)
