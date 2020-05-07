@@ -1,4 +1,5 @@
 from pathlib import Path
+import math
 import scipy.io as sio
 import numpy as np
 
@@ -45,3 +46,44 @@ class ImageSequence:
 
     def __iter__(self):
         return (self.get_one_frame(frame) for frame in range(self.length))
+def conv2(v1, v2, m, mode='same'):
+    """
+    Two-dimensional convolution of matrix m by vectors v1 and v2
+
+    First convolves each column of 'm' with the vector 'v1'
+    and then it convolves each row of the result with the vector 'v2'.
+
+    """
+    tmp = np.apply_along_axis(np.convolve, 0, m, v1, mode)
+    return np.apply_along_axis(np.convolve, 1, tmp, v2, mode)
+
+def band_pass(image: np.ndarray, r_noise, r_object):
+    def normalize(x):
+        return x/sum(x)
+
+    if r_noise:
+        gauss_kernel_size = np.ceil(r_noise * 5)
+        x = np.arange(-gauss_kernel_size, gauss_kernel_size+1)
+        print(x)
+        gaussian_kernel = normalize(np.exp(-(x/r_noise/2)**2))
+    else:
+        gaussian_kernel = 1
+    print(gaussian_kernel)
+    print(sum(gaussian_kernel))
+    print(np.arange(10)**2)
+    gauss_filtered_image = conv2(gaussian_kernel, gaussian_kernel, image)
+
+    if r_object:
+        boxcar_kernel = normalize(np.ones(round(r_object)*2 + 1))
+        boxcar_image = conv2(boxcar_kernel, boxcar_kernel, image)
+        band_passed_image = gauss_filtered_image - boxcar_image
+    else:
+        band_passed_image = gauss_filtered_image
+
+    edge_size = round(max(r_object, gauss_kernel_size))
+    band_passed_image[0:edge_size, :] = 0
+    band_passed_image[-edge_size:, :] = 0
+    band_passed_image[:, 0:edge_size] = 0
+    band_passed_image[:, -edge_size:] = 0
+    band_passed_image[band_passed_image<0] = 0
+    return band_passed_image

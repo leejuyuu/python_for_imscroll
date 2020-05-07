@@ -10,6 +10,7 @@ row.
 import pathlib
 import numpy as np
 import pytest
+import scipy.io as sio
 from python_for_imscroll import image_processing as imp
 
 def test_read_glimpse_image():
@@ -52,3 +53,20 @@ def test_iter_over_image_sequece():
         true_image = np.reshape(np.arange(i_frame + 1, i_frame + n_pixels + 1),
                                 (image_sequence.width, image_sequence.height))
         np.testing.assert_equal(true_image, i_frame_image)
+
+
+def test_band_pass():
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_image.mat')
+    test_image = sio.loadmat(image_path)['testImage']
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_bpass.mat')
+    true_image = sio.loadmat(image_path)['filteredImage']
+    filtered_image = imp.band_pass(test_image, 1, 5)
+    np.testing.assert_equal(true_image, filtered_image)
+
+
+def test_band_pass_real_image():
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_bpass_real_image.mat')
+    test_image = sio.loadmat(image_path)['image']
+    true_image = sio.loadmat(image_path)['filteredImage']
+    filtered_image = imp.band_pass(test_image, 1, 5)
+    np.testing.assert_equal(true_image, filtered_image)
