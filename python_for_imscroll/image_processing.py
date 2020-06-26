@@ -47,6 +47,12 @@ class ImageSequence:
 
     def __iter__(self):
         return (self.get_one_frame(frame) for frame in range(self.length))
+
+    def get_whole_stack(self):
+        return np.stack([self.get_one_frame(frame) for frame in range(self.length)],
+                        axis=-1)
+
+
 def conv2(v1, v2, m, mode='same'):
     """
     Two-dimensional convolution of matrix m by vectors v1 and v2
@@ -174,3 +180,4 @@ def _create_circular_mask(w, center=None, radius: float = None):
 
     mask = dist_from_center <= radius
     return mask
+
