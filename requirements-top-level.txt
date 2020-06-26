@@ -5,6 +5,7 @@ numpy
 odfpy
 pandas
 PyQt5
+pyqtgraph
 PySide2
 rpy2
 scikit-image
