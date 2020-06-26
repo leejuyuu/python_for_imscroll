@@ -20,7 +20,7 @@ def test_read_glimpse_image():
     for i_frame in range(image_sequence.length):
         image = image_sequence.get_one_frame(i_frame)
         true_image = np.reshape(np.arange(i_frame + 1, i_frame + n_pixels + 1),
-                                (image_sequence.width, image_sequence.height))
+                                (image_sequence.height, image_sequence.width))
         np.testing.assert_equal(true_image, image)
 
     with pytest.raises(ValueError) as exception_info:
@@ -51,7 +51,7 @@ def test_iter_over_image_sequece():
     n_pixels = image_sequence.width * image_sequence.height
     for i_frame, i_frame_image in enumerate(image_sequence):
         true_image = np.reshape(np.arange(i_frame + 1, i_frame + n_pixels + 1),
-                                (image_sequence.width, image_sequence.height))
+                                (image_sequence.height, image_sequence.width))
         np.testing.assert_equal(true_image, i_frame_image)
 
 

@@ -36,7 +36,7 @@ class ImageSequence:
                             dtype='>i2',
                             count=(self.width * self.height),
                             offset=offset)
-        image = np.reshape(image, (self.width, self.height))
+        image = np.reshape(image, (self.height, self.width))
         # The glimpse saved image is U16 integer - 2**15 and saved in I16 format.
         # To recover the U16 integers, we need to add 2**15 back, but we cannot
         # do this directly since the image is read as I16 integer, adding 2**15
