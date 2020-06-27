@@ -61,7 +61,7 @@ def test_band_pass():
     image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_bpass.mat')
     true_image = sio.loadmat(image_path)['filteredImage']
     filtered_image = imp.band_pass(test_image, 1, 5)
-    np.testing.assert_equal(true_image, filtered_image)
+    np.testing.assert_allclose(true_image, filtered_image, atol=1e-12)
 
 
 def test_band_pass_real_image():
@@ -69,4 +69,4 @@ def test_band_pass_real_image():
     test_image = sio.loadmat(image_path)['image']
     true_image = sio.loadmat(image_path)['filteredImage']
     filtered_image = imp.band_pass(test_image, 1, 5)
-    np.testing.assert_equal(true_image, filtered_image)
+    np.testing.assert_allclose(true_image, filtered_image, atol=1e-12)
