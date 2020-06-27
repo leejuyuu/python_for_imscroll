@@ -70,3 +70,26 @@ def test_band_pass_real_image():
     true_image = sio.loadmat(image_path)['filteredImage']
     filtered_image = imp.band_pass(test_image, 1, 5)
     np.testing.assert_allclose(true_image, filtered_image, atol=1e-12)
+
+
+def test_find_peak():
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_pkfnd_71_5.mat')
+    test_image = sio.loadmat(image_path)['filteredImage']
+    true_peaks = sio.loadmat(image_path)['spotCoords']
+    peaks = imp.find_peaks(test_image, threshold=71, peak_size=5)
+    assert isinstance(peaks, np.ndarray)
+    assert peaks.shape[1] == 2
+    assert np.issubdtype(peaks.dtype, np.integer)  # Check that the returned type is some integer
+    peaks += 1  # Convert to 1 based indexing
+    np.testing.assert_equal(peaks, true_peaks)
+
+    # Case2 with different param
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_pkfnd_1_5.mat')
+    test_image = sio.loadmat(image_path)['filteredImage']
+    true_peaks = sio.loadmat(image_path)['spotCoords']
+    peaks = imp.find_peaks(test_image, threshold=1, peak_size=5)
+    assert isinstance(peaks, np.ndarray)
+    assert peaks.shape[1] == 2
+    assert np.issubdtype(peaks.dtype, np.integer)  # Check that the returned type is some integer
+    peaks += 1  # Convert to 1 based indexing
+    np.testing.assert_equal(peaks, true_peaks)

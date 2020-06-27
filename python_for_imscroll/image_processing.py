@@ -1,6 +1,7 @@
 from pathlib import Path
 import math
 import scipy.io as sio
+import scipy.ndimage
 import numpy as np
 
 
@@ -87,3 +88,41 @@ def band_pass(image: np.ndarray, r_noise, r_object):
     band_passed_image[:, -edge_size:] = 0
     band_passed_image[band_passed_image<0] = 0
     return band_passed_image
+
+
+def find_peaks(image, threshold, peak_size):
+    # Transpose the image to mimick the matlab index ordering, since the later
+    # close peak removal is dependent on the order of the peaks.
+    t_image = image.T
+    is_above_th = t_image > threshold
+    if not is_above_th.any():
+        print('nothing above threshold')
+        return None
+    width, height = t_image.shape
+
+    is_local_max = scipy.ndimage.maximum_filter(t_image, size=3) == t_image
+    idx = np.logical_and(is_above_th, is_local_max)  # np.nonzero returns the indices
+    # The index is labeled as x, y since the image was transposed
+    x_idx, y_idx = idx.nonzero()
+
+    is_not_at_edge = np.logical_and.reduce((x_idx > peak_size -1,
+                                            x_idx < width-peak_size - 1,
+                                            y_idx > peak_size - 1,
+                                            y_idx < height - peak_size - 1))
+
+    y_idx = y_idx[is_not_at_edge]
+    x_idx = x_idx[is_not_at_edge]
+
+    if len(y_idx) > 1:
+        c = peak_size // 2
+        # Create an image with only peaks
+        peak_image = np.zeros(t_image.shape)
+        peak_image[x_idx, y_idx] = t_image[x_idx, y_idx]
+        for x, y in zip(y_idx, x_idx):
+            roi = peak_image[y-c:y+c+2, x-c:x+c+2]
+            max_peak_pos = np.unravel_index(np.argmax(roi), roi.shape)
+            max_peak_val = roi[max_peak_pos[0], max_peak_pos[1]]
+            peak_image[y-c:y+c+2, x-c:x+c+2] = 0
+            peak_image[y-c + max_peak_pos[0], x-c + max_peak_pos[1]] = max_peak_val
+        x_idx, y_idx = (peak_image > 0).nonzero()
+    return np.stack((x_idx, y_idx), axis=-1)
