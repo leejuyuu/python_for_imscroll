@@ -21,7 +21,14 @@ def main():
     imv = pg.ImageView(view=vb)
     marker = pg.ScatterPlotItem()
     marker.setBrush(255, 0, 0, 255)
-    marker.setData([150, 200], [220, 100], symbol='s', pen=(0, 0, 255), brush=None, size=5, pxMode=False)
+    spot_dia = 5
+    noise_dia = 1
+    spot_b = 80
+    filtered_image = imp.band_pass(image[:, :, 0], noise_dia, spot_dia)
+    peaks = imp.find_peaks(filtered_image, spot_b, spot_dia)
+    # The coordinate of the view starts from the edge, so offsets 0.5
+    peaks = imp.localize_centroid(filtered_image, peaks, spot_dia + 2) - 0.5
+    marker.setData(peaks[:, 0], peaks[:, 1], symbol='s', pen=(0, 0, 255), brush=None, size=5, pxMode=False)
     vb.addItem(marker)
     # imv = QtWidgets.QWidget()
     imv.show()
