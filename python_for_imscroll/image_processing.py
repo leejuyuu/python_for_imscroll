@@ -126,3 +126,51 @@ def find_peaks(image, threshold, peak_size):
             peak_image[y-c + max_peak_pos[0], x-c + max_peak_pos[1]] = max_peak_val
         x_idx, y_idx = (peak_image > 0).nonzero()
     return np.stack((x_idx, y_idx), axis=-1)
+
+
+def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
+    if dia % 2 != 1:
+        raise ValueError('Window diameter only accepts odd integer values.')
+    if peaks.size == 0:
+        raise ValueError('There are no peaks input')
+    # Filter out the peaks too close to the edges
+    height, width = image.shape
+    x_idx = peaks[:, 0]
+    y_idx = peaks[:, 1]
+    is_in_range = np.logical_and.reduce((x_idx > 1.5*dia,
+                                         x_idx < width - 1.5*dia,
+                                         y_idx > 1.5*dia,
+                                         y_idx < height - 1.5*dia))
+    peaks = peaks[is_in_range, :]
+
+    radius = int((dia + 1)/2)
+    x_weight = np.tile(np.arange(1, 2*radius + 1), (2*radius, 1))
+    y_weight = x_weight.T
+    mask = _create_circular_mask(2*radius, radius=radius)
+
+    peaks_out = np.zeros(peaks.shape)
+    for i, row in enumerate(peaks):
+        x = row[0]
+        y = row[1]
+        masked_roi = mask * image[y-radius+1:y+radius+1, x-radius+1:x+radius+1]
+        norm = np.sum(masked_roi)
+        x_avg = np.sum(masked_roi * x_weight) / norm + (x - radius + 1)
+        y_avg = np.sum(masked_roi * y_weight) / norm + (y - radius + 1)
+        peaks_out[i, :] = [x_avg, y_avg]
+    return peaks_out
+
+
+def _create_circular_mask(w, center=None, radius: float = None):
+    if center is None:
+        # Use the middle of the image, which is the average of 1st index 0 and
+        # last index w-1
+        center = ((w-1)/2, (w-1)/2)
+    if radius is None: # use the smallest distance between the center and image walls
+        radius = min(center[0], center[1], w-center[0], w-center[1])
+
+    y_grid, x_grid = np.ogrid[:w, :w]
+    # Use broadcasting to calculate the distaces of each element
+    dist_from_center = np.sqrt((x_grid - center[0])**2 + (y_grid-center[1])**2)
+
+    mask = dist_from_center <= radius
+    return mask

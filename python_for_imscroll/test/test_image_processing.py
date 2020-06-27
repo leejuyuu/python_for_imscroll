@@ -93,3 +93,14 @@ def test_find_peak():
     assert np.issubdtype(peaks.dtype, np.integer)  # Check that the returned type is some integer
     peaks += 1  # Convert to 1 based indexing
     np.testing.assert_equal(peaks, true_peaks)
+
+
+def test_localize_centroid():
+    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_cntrd_71_5.mat')
+    test_image = sio.loadmat(image_path)['filteredImage']
+    peaks = sio.loadmat(image_path)['spotCoords'] - 1  # Minus 1 to convert to 0 based index
+    true_output = sio.loadmat(image_path)['out'][:, 0:2]  # First two columns are x, y coords
+    output = imp.localize_centroid(test_image, peaks, 5+2)
+    assert isinstance(output, np.ndarray)
+    assert output.shape[1] == 2
+    np.testing.assert_allclose(output, true_output, atol=1e-13)  # Tolerate rounding error
