@@ -135,6 +135,8 @@ def find_peaks(image, threshold, peak_size):
 
 
 def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
+    if peaks is None:  # There is no peak found by find_peaks()
+        return None
     if dia % 2 != 1:
         raise ValueError('Window diameter only accepts odd integer values.')
     if peaks.size == 0:

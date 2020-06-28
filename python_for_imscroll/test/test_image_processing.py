@@ -104,3 +104,8 @@ def test_localize_centroid():
     assert isinstance(output, np.ndarray)
     assert output.shape[1] == 2
     np.testing.assert_allclose(output, true_output, atol=1e-13)  # Tolerate rounding error
+
+
+    # If there is no peak found by find_peaks()
+    output = imp.localize_centroid(test_image, None, 5+2)
+    assert output is None
