@@ -97,13 +97,13 @@ def import_channels_info(datapath, filestr):
     return channels_info_dict
 
 
-def import_time_stamps(channels_info):
+def import_time_stamps(channels_info, start_end):
     channels_time_stamps = dict(channels_info)
     timezeros = []
     for channel, image_path in channels_info.items():
         header_file_path = image_path / 'header.mat'
         header_file = sio.loadmat(header_file_path)
-        time_stamps = header_file['vid']['ttb'][0, 0].squeeze()
+        time_stamps = header_file['vid']['ttb'][0, 0].squeeze()[slice(*start_end)]
         channels_time_stamps[channel] = time_stamps
         timezeros.append(time_stamps[0])
     starttime = min(timezeros)
@@ -113,9 +113,9 @@ def import_time_stamps(channels_info):
     return channels_time_stamps
 
 
-def initialize_data_from_intensity_traces(datapath, filestr):
+def initialize_data_from_intensity_traces(datapath, filestr, start_end):
     channels_info = import_channels_info(datapath, filestr)
-    channels_time_stamps = import_time_stamps(channels_info)
+    channels_time_stamps = import_time_stamps(channels_info, start_end)
 
     intensity_file_path = datapath / (filestr + '_traces.dat')
     traces_file = sio.loadmat(intensity_file_path)
