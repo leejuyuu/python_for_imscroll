@@ -245,11 +245,11 @@ def extract_dwell_time(intervals_list, state):
                 np.logical_not(np.isnan(i_AOI_intervals.duration)),
                 drop=True)
 
-            valid_intervals = valid_intervals.isel(interval_number=slice(1, None))
+            # valid_intervals = valid_intervals.isel(interval_number=slice(1, None))
             if len(valid_intervals.duration) != 0:
                 valid_intervals = valid_intervals.assign({'event_observed' :('interval_number', np.ones(len(valid_intervals.interval_number)))})
 
-                valid_intervals['event_observed'][-1] = 0
+                valid_intervals['event_observed'][[0, -1]] = 0
                 i_dwell = valid_intervals[['duration', 'event_observed']].where(valid_intervals.state_number == state,
                                                                                 drop=True)
 
