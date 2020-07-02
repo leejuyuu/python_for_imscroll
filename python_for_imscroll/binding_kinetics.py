@@ -119,6 +119,13 @@ def list_multiple_tethers(channel_state_info) -> tuple:
     return bad_tethers
 
 
+def list_none_ctl_positions(channel_state_info) -> tuple:
+    cond = np.logical_or(channel_state_info.nStates != 1,
+                         np.logical_not(channel_state_info.bool_lowest_state_equal_to_zero))
+    aoi_list = channel_state_info.AOI[cond].values.tolist()
+    return tuple(aoi_list)
+
+
 def split_data_set_by_specifying_aoi_subset(data, aoi_subset: set):
     whole_aoi_set = set(data.AOI.values)
     complement_subset = whole_aoi_set - aoi_subset

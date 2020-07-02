@@ -38,6 +38,7 @@ def categorize_binding_traces(parameter_file_path: Path, sheet_list: List[str], 
     for i_sheet in sheet_list:
         dfs = pd.read_excel(parameter_file_path, sheet_name=i_sheet)
         for filestr in dfs.filename:
+            is_ctl_file = filestr[-3:] == 'ctl'
             AOI_categories = {}
 
             try:
@@ -46,8 +47,12 @@ def categorize_binding_traces(parameter_file_path: Path, sheet_list: List[str], 
                 continue
 
             state_info = bk.collect_all_channel_state_info(data)
-            bad_tethers = bk.list_multiple_tethers(state_info.sel(channel=data.target_channel))
-            AOI_categories['multiple_tethers'] = bad_tethers
+            if is_ctl_file:
+                bad_tethers = bk.list_none_ctl_positions(state_info.sel(channel=data.target_channel))
+                AOI_categories['tethers'] = bad_tethers
+            else:
+                bad_tethers = bk.list_multiple_tethers(state_info.sel(channel=data.target_channel))
+                AOI_categories['multiple_tethers'] = bad_tethers
             remaining_aois = list(set(data.AOI.values) - set(bad_tethers))
             selected_data = data.sel(AOI=remaining_aois)
             protein_channel_data = bk.get_channel_data(selected_data, data.binder_channel[0])
