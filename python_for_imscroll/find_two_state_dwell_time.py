@@ -66,6 +66,7 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
     datapath = imscrollIO.def_data_path()
     state_category = '1'
     im_format = 'svg'
+    excluded_aois = (35,36,37,38,52,53,64,65,67,75,77,79,81,87,89,98,107,115,116,118,122,127,131,145,147,149,150,152,153,154,156,158,159,)
     for i_sheet in sheet_list:
         time_offset = read_time_offset(parameter_file_path, i_sheet)
         zero_state_interval_list = read_interval_data(parameter_file_path,
@@ -73,16 +74,23 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
                                                       i_sheet,
                                                       '0',
                                                       first_only=True)[0]
+        intervals = zero_state_interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        zero_state_interval_list[0] = intervals.sel(AOI=selected_aois)
         n_right_censored = len(zero_state_interval_list[0].AOI)
         interval_list, n_good_traces, max_time = read_interval_data(parameter_file_path,
                                                                     datapath,
                                                                     i_sheet,
                                                                     state_category,
                                                                     first_only=True)
+        intervals = interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        interval_list[0] = intervals.sel(AOI=selected_aois)
+
         dwells = binding_kinetics.extract_first_binding_time(interval_list)
         dwells['duration'] += time_offset
         max_time += time_offset
-        interval_censor_table = np.zeros((len(dwells.duration)+n_right_censored-25,
+        interval_censor_table = np.zeros((len(dwells.duration)+n_right_censored,
                                           2))
 
         interval_censor_table[0:len(dwells.duration), 0] = dwells.duration.values
