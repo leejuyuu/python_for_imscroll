@@ -29,6 +29,7 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 from matplotlib import pyplot as plt
 from lifelines import KaplanMeierFitter, ExponentialFitter
+from scipy import optimize
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
 
@@ -111,6 +112,24 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
         save_fig_path = datapath / (i_sheet + '_' + '_first_dwellr' + '.' + im_format)
         call_r_survival(df, save_fig_path, stat_counts)
 
+def fit_biexponential(data):
+    def n_log_lik(param):
+        S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
+        f = lambda t, k1, k2, A: A*k1*np.exp(-k1*t) + (1-A)*k2*np.exp(-k2*t)
+        observed = data.time[data.status==1].to_numpy()
+        right_censored = data.time[data.status==0].to_numpy()
+        left_censored = data.time[data.status==2].to_numpy()
+        # if any(f(observed, *param) == 0) or any(S(right_censored, *param) == 0) or any(1-S(right_censored, *param) == 0):
+        #     breakpoint()
+        return -(np.sum(np.log(f(observed, *param)))
+                 + np.sum(np.log(S(right_censored, *param)))
+                 + np.sum(np.log(1-S(left_censored, *param))))
+    k_guess = 1/np.mean(data.time)
+    result = optimize.minimize(n_log_lik, [k_guess*1.5, k_guess/3, 0.5],
+                                  bounds=((1e-7, np.inf), (1e-7, np.inf), (0, 1)),
+                                  method='L-BFGS-B')
+    return result
+
 
 def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, int, int]):
     rpy2.robjects.pandas2ri.activate()
@@ -129,10 +148,19 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
     robjects.r('exreg <- survreg(surv~1, data={}, dist="exponential")'.format(r_from_pd_df.r_repr()))
     intercept = robjects.r('exreg["coefficients"]')[0].item()
     log_var = robjects.r('exreg["var"]')[0].item()
+
+
+    result = fit_biexponential(df)
+    param = result.x
+    print(1/param[:2], param[2])
+
+    S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
     k = np.exp(-intercept)
     tau_ci = np.exp(intercept + np.array([-1, 1])*log_var)
     x = np.linspace(0, time[-1], int(round(time[-1]*10)))
     y = np.exp(-k*x)
+    y = S(x, *param)
+
 
     plt.step(time, surv, where='post')
     plt.plot(x, y)
@@ -160,9 +188,11 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
         surv_data = np.stack([time, surv, upper_ci, lower_ci])
         group_survival_curve.create_dataset('data', surv_data.shape,
                                             'f', surv_data)
-        group_exp_model = f.create_group('exp_model')
-        group_exp_model.create_dataset('k', (1,), 'f', k)
-        group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
+        # group_exp_model = f.create_group('exp_model')
+        # group_exp_model.create_dataset('k', (1,), 'f', k)
+        # group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
+        group_exp_model = f.create_group('bi_exp_model')
+        group_exp_model.create_dataset('param', (3,), 'f', param)
 
 
 def plot_survival_curve(kmf: KaplanMeierFitter,
