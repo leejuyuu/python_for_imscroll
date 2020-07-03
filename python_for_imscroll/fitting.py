@@ -19,18 +19,17 @@ import numpy as np
 from scipy import optimize
 
 
-def main(x, y):
+def main(x, y, yerr=None):
     if len(x) != len(y):
         raise ValueError('Unequal x and y length')
-    popt, _ = fit_linear(x, y)
+    popt, _ = fit_linear(x, y, yerr=yerr)
     r_squared = calculate_linear_r_squared(x, y, popt)
     return {'slope': popt[0],
             'intercept': popt[1],
             'r_squared': r_squared,}
 
-def fit_linear(x, y):
-
-    popt, pcov = optimize.curve_fit(f, x, y)
+def fit_linear(x, y, yerr=None):
+    popt, pcov = optimize.curve_fit(f, x, y, sigma=yerr)
     return popt, pcov
 
 
