@@ -183,3 +183,30 @@ def _create_circular_mask(w, center=None, radius: float = None):
     mask = dist_from_center <= radius
     return mask
 
+
+class Aois():
+    def __init__(self, coords: np.ndarray, frame: int, frame_avg: int = 1, width: int = 5):
+        self._frame_avg = frame_avg
+        self._frame = frame
+        self.width = width
+        self._coords = coords
+
+    def get_all_x(self):
+        return self._coords[:, 0]
+
+    def get_all_y(self):
+        return self._coords[:, 1]
+
+    @property
+    def frame(self):
+        return self._frame
+
+    @property
+    def frame_avg(self):
+        return self._frame_avg
+
+    def __len__(self):
+        return self._coords.shape[0]
+
+    def __iter__(self):
+        return map(tuple, self._coords)

@@ -109,3 +109,48 @@ def test_localize_centroid():
     # If there is no peak found by find_peaks()
     output = imp.localize_centroid(test_image, None, 5+2)
     assert output is None
+
+
+def test_aois_class():
+    aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0)
+    assert aois.width == 5
+    assert aois.frame == 0
+    assert aois.frame_avg == 1
+    true_arr = np.arange(10)
+    np.testing.assert_equal(aois.get_all_x(), true_arr)
+    np.testing.assert_equal(aois.get_all_y(), true_arr)
+
+
+    aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0, frame_avg=10, width=6)
+    assert aois.width == 6
+    assert aois.frame_avg == 10
+
+    # These two attributes are protected by property, should not be set outside
+    # init
+    with pytest.raises(AttributeError) as exception:
+        aois.frame = 20
+        assert "can't set attribute" in str(exception.value)
+    with pytest.raises(AttributeError):
+        aois.frame_avg = 1
+        assert "can't set attribute" in str(exception.value)
+
+    assert len(aois) == 10
+
+    # Iterator returns tuples of (x, y)
+    for i, item in enumerate(aois):
+        assert isinstance(item, tuple)
+        x, y = item
+        assert x == i
+        assert y == i
+
+    a = np.arange(10)
+    aois = imp.Aois(np.stack([a, 2*a], axis=-1), frame=1)
+
+    np.testing.assert_equal(aois.get_all_x(), a)
+    np.testing.assert_equal(aois.get_all_y(), a*2)
+
+    for i, item in enumerate(aois):
+        assert isinstance(item, tuple)
+        x, y = item
+        assert x == i
+        assert y == 2*i
