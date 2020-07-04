@@ -1,5 +1,6 @@
 from pathlib import Path
 import math
+from typing import Union
 import scipy.io as sio
 import scipy.ndimage
 import numpy as np
@@ -230,3 +231,11 @@ class Aois():
                         frame_avg=self.frame_avg,
                         width=self.width)
         return new_aois
+
+    def is_in_range_of(self, ref_aois: 'Aois', radius: Union[int, float]):
+        x = self.get_all_x()[:, np.newaxis]
+        y = self.get_all_y()[:, np.newaxis]
+        ref_x = ref_aois.get_all_x()[np.newaxis]  # Produce row vector
+        ref_y = ref_aois.get_all_y()[np.newaxis]
+        dist_arr = np.sqrt((x - ref_x)**2 + (y - ref_y)**2)
+        return (dist_arr <= radius).any(axis=1)

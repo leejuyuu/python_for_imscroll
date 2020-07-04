@@ -207,3 +207,28 @@ def test_remove_close_aois():
     new_aois = aois.remove_close_aois(5)
     np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[3]])
     np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[3]])
+
+
+def test_Aois_is_in_range_of():
+    arr = np.array([[0, 1],
+                    [10, 10],
+                    [100, 50],
+                    [100, 52],
+                    [100, 49],
+                    [200, 100],
+                    [300, 70],
+                    [400, 80],
+                    [786, 520],
+                    [150, 200]])
+    ref = np.array([[5, 1],
+                    [100, 55],
+                    [10, 15],
+                    [302, 68],
+                    [403, 84],
+                    [790, 516]])
+    aois = imp.Aois(arr, 0)
+    ref_aois = imp.Aois(ref, 0)
+    is_in_range = aois.is_in_range_of(ref_aois=ref_aois, radius=5)
+    assert len(is_in_range) == len(aois)
+    true_arr = np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 0], dtype=bool)
+    np.testing.assert_equal(is_in_range, true_arr)
