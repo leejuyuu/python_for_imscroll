@@ -210,3 +210,17 @@ class Aois():
 
     def __iter__(self):
         return map(tuple, self._coords)
+
+    def remove_close_aois(self, distance: int = 0):
+        x = self.get_all_x()[np.newaxis]
+        y = self.get_all_y()[np.newaxis]
+        x_diff_squared = (x - x.T)**2
+        y_diff_squared = (y - y.T)**2
+        dist_arr = np.sqrt(x_diff_squared + y_diff_squared)
+        is_diag = np.identity(len(self), dtype=bool)  # Ignore same aoi distance == 0
+        is_not_close = np.logical_or(dist_arr > distance, is_diag).all(axis=1)
+        new_aois = Aois(self._coords[is_not_close, :],
+                        frame=self.frame,
+                        frame_avg=self.frame_avg,
+                        width=self.width)
+        return new_aois

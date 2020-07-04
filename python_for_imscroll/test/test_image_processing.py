@@ -154,3 +154,51 @@ def test_aois_class():
         x, y = item
         assert x == i
         assert y == 2*i
+
+
+def test_remove_close_aois():
+    # x spacing
+    arr = np.ones((7, 2))
+    arr[:, 0] = np.array([1, 3, 4, 6, 8, 9, 11]) * 4
+    aois = imp.Aois(arr, 0, frame_avg=10, width=10)
+    new_aois = aois.remove_close_aois(5)
+    assert isinstance(new_aois, imp.Aois)
+    np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[0, 3, 6]])
+    np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[0, 3, 6]])
+    assert new_aois.frame == 0
+    assert new_aois.frame_avg == 10
+    assert new_aois.width == 10
+
+    # y spacing
+    arr = np.ones((7, 2))
+    arr[:, 1] = np.array([1, 3, 4, 6, 8, 9, 11]) * 4
+    aois = imp.Aois(arr, 0)
+    new_aois = aois.remove_close_aois(5)
+    np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[0, 3, 6]])
+    np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[0, 3, 6]])
+
+    # Boundary case
+    arr = np.ones((4, 2))
+    arr[:, 1] = np.array([1, 3, 4, 8]) * 5
+    aois = imp.Aois(arr, 0)
+    new_aois = aois.remove_close_aois(5)
+    np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[0, 3]])
+    np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[0, 3]])
+
+    # Not on axis
+    arr = np.ones((7, 2))
+    arr[:, 0] = np.array([1, 3, 4, 6, 8, 9, 11]) * 4 * np.cos(np.pi/3)
+    arr[:, 1] = np.array([1, 3, 4, 6, 8, 9, 11]) * 4 * np.sin(np.pi/3)
+    aois = imp.Aois(arr, 0)
+    new_aois = aois.remove_close_aois(5)
+    np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[0, 3, 6]])
+    np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[0, 3, 6]])
+
+    # Aggregates
+    arr = np.ones((7, 2))
+    arr[:, 0] = np.array([1, 1, 2, 6, 11, 13, 15])
+    arr[:, 1] = np.array([1, 2, 1, 6, 11, 13, 14])
+    aois = imp.Aois(arr, 0)
+    new_aois = aois.remove_close_aois(5)
+    np.testing.assert_equal(new_aois.get_all_x(), aois.get_all_x()[[3]])
+    np.testing.assert_equal(new_aois.get_all_y(), aois.get_all_y()[[3]])
