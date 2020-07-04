@@ -211,6 +211,12 @@ class Aois():
     def __iter__(self):
         return map(tuple, self._coords)
 
+    def __contains__(self, item):
+        if len(item) == 2:
+            in_coord = np.array(item)
+            return (self._coords == in_coord).all(axis=1).any()
+        return False
+
     def remove_close_aois(self, distance: int = 0):
         x = self.get_all_x()[np.newaxis]
         y = self.get_all_y()[np.newaxis]

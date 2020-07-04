@@ -155,6 +155,11 @@ def test_aois_class():
         assert x == i
         assert y == 2*i
 
+    assert (1, 2) in aois
+    assert np.array([1, 2]) in aois
+    assert (1, 1) not in aois
+    assert (1, 1, 1) not in aois
+
 
 def test_remove_close_aois():
     # x spacing
