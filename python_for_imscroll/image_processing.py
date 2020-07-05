@@ -239,3 +239,19 @@ class Aois():
         ref_y = ref_aois.get_all_y()[np.newaxis]
         dist_arr = np.sqrt((x - ref_x)**2 + (y - ref_y)**2)
         return (dist_arr <= radius).any(axis=1)
+
+    def remove_aois_near_ref(self, ref_aois: 'Aois', radius: Union[int, float]) -> 'Aois':
+        is_in_range_of_ref = self.is_in_range_of(ref_aois=ref_aois, radius=radius)
+        new_aois = Aois(self._coords[np.logical_not(is_in_range_of_ref), :],
+                        frame=self.frame,
+                        frame_avg=self.frame_avg,
+                        width=self.width)
+        return new_aois
+
+    def remove_aois_far_from_ref(self, ref_aois: 'Aois', radius: Union[int, float]) -> 'Aois':
+        is_in_range_of_ref = self.is_in_range_of(ref_aois=ref_aois, radius=radius)
+        new_aois = Aois(self._coords[is_in_range_of_ref, :],
+                        frame=self.frame,
+                        frame_avg=self.frame_avg,
+                        width=self.width)
+        return new_aois

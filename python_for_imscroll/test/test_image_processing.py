@@ -232,3 +232,11 @@ def test_Aois_is_in_range_of():
     assert len(is_in_range) == len(aois)
     true_arr = np.array([1, 1, 1, 1, 0, 0, 1, 1, 0, 0], dtype=bool)
     np.testing.assert_equal(is_in_range, true_arr)
+
+    # Remove aois near ref
+    new_aois = aois.remove_aois_near_ref(ref_aois, radius=5)
+    np.testing.assert_equal(new_aois.get_all_x(), arr[np.logical_not(true_arr), 0])
+
+    # Remove aois far from ref
+    new_aois = aois.remove_aois_far_from_ref(ref_aois, radius=5)
+    np.testing.assert_equal(new_aois.get_all_x(), arr[true_arr, 0])
