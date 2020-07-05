@@ -3,6 +3,7 @@ import math
 from typing import Union
 import scipy.io as sio
 import scipy.ndimage
+import scipy.optimize
 import numpy as np
 
 
@@ -272,3 +273,22 @@ class Aois():
         gen_objects = (Aois(self._coords[i, :], **self._get_params())
                        for i in range(len(self)))
         return gen_objects
+
+def symmetric_2d_gaussian(xy, A, x0, y0, sigma, h):
+    x, y = xy
+    y = y.T
+    denominator = (x - x0)**2 + (y - y0)**2
+    return (A*np.exp(-denominator/(2*sigma)) + h).ravel()
+
+
+def fit_2d_gaussian(xy, z):
+    x_c = xy[0].mean()
+    y_c = xy[1].mean()
+    bounds = (0, [2*z.max(), xy[0].max(), xy[1].max(), 10000, 2*z.max()])
+    param_0 = [z.max() - z.mean(), x_c, y_c, min(x_c, y_c)/2, z.mean()]
+    popt, _ = scipy.optimize.curve_fit(symmetric_2d_gaussian,
+                                       xy,
+                                       z,
+                                       p0=param_0,
+                                       bounds=bounds)
+    return popt

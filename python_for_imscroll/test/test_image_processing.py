@@ -248,6 +248,16 @@ def test_Aois_is_in_range_of():
     np.testing.assert_equal(new_aois.get_all_x(), arr[true_arr, 0])
 
 
+def test_fit_2d_gaussian():
+    np.random.seed(1)
+    xy_data = np.ogrid[:5, :5]
+    xy_data[1] = xy_data[1].T
+    param = [500, 2.5, 1.7, 1.5, 100]
+    image = (imp.symmetric_2d_gaussian(xy_data, *param) + 10*np.random.standard_normal(25))
+    fitted_param = imp.fit_2d_gaussian(xy_data, image)
+    np.testing.assert_allclose(fitted_param, param, rtol=0.03)
+
+
 def test_Aois_iter_objects():
     aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0)
     for i, aoi in enumerate(aois.iter_objects()):
