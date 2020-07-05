@@ -262,3 +262,13 @@ class Aois():
                         frame_avg=self.frame_avg,
                         width=self.width)
         return new_aois
+
+    def _get_params(self):
+        return {'frame': self.frame,
+                'frame_avg': self.frame_avg,
+                'width': self.width}
+
+    def iter_objects(self):
+        gen_objects = (Aois(self._coords[i, :], **self._get_params())
+                       for i in range(len(self)))
+        return gen_objects

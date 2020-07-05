@@ -246,3 +246,12 @@ def test_Aois_is_in_range_of():
     # Remove aois far from ref
     new_aois = aois.remove_aois_far_from_ref(ref_aois, radius=5)
     np.testing.assert_equal(new_aois.get_all_x(), arr[true_arr, 0])
+
+
+def test_Aois_iter_objects():
+    aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0)
+    for i, aoi in enumerate(aois.iter_objects()):
+        assert aoi.width == 5
+        assert aoi.frame == 0
+        assert aoi.frame_avg == 1
+        assert (aoi._coords == i).all()
