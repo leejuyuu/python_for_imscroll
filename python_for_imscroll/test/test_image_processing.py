@@ -111,6 +111,12 @@ def test_localize_centroid():
     assert output is None
 
 
+def test_pick_spots():
+    test_image = np.zeros((200, 300))
+    aois = imp.pick_spots(test_image, noise_dia=1, spot_dia=5, threshold=50)
+    assert isinstance(aois, imp.Aois)
+
+
 def test_aois_class():
     aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0)
     assert aois.width == 5
