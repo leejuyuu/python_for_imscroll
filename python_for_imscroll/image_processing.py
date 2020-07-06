@@ -215,6 +215,8 @@ class Aois():
         return self._frame_avg
 
     def __len__(self):
+        if len(self._coords.shape) == 1:
+            return 1
         return self._coords.shape[0]
 
     def __iter__(self):

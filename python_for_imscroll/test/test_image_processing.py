@@ -264,4 +264,5 @@ def test_Aois_iter_objects():
         assert aoi.width == 5
         assert aoi.frame == 0
         assert aoi.frame_avg == 1
+        assert len(aoi) == 1
         assert (aoi._coords == i).all()
