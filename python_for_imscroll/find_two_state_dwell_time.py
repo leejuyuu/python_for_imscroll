@@ -45,6 +45,10 @@ def find_two_state_dwell_time(parameter_file_path: Path, sheet_list: List[str]):
                                                                     datapath,
                                                                     i_sheet,
                                                                     state_category)
+        excluded_aois = (4,9,12,14,40,58,74,79,106,120,124,)
+        intervals = interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        interval_list[0] = intervals.sel(AOI=selected_aois)
         for i, item in enumerate(state_list):
             dwells = binding_kinetics.extract_dwell_time(interval_list, i)
             if len(dwells.duration) == 0:
