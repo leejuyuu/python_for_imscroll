@@ -2,12 +2,13 @@
 
 from pathlib import Path
 import numpy as np
+import seaborn as sns
 import python_for_imscroll.visualization as vis
 from python_for_imscroll import fitting
 
 
 def main():
-    conc = 62.5*np.array([1, 2, 4, 8, 8, 2, 1, 4])
+    conc = 62.5*np.array([1, 2, 4, 8, 8, 2, 1, 4, 2, 4])
     time = np.array([185.17893097,
                      123.37271731,
                      35.37462628,
@@ -15,7 +16,9 @@ def main():
                      56.48242756,
                      212.71951509,
                      585.64238082,
-                     156.66647635])
+                     156.66647635,
+                     179.16054604,
+                     108.919274])
     k_obs = 1/time
     x = np.array(list(set(conc)))
     y = np.array([np.mean(k_obs[conc == i]) for i in x])
@@ -25,7 +28,8 @@ def main():
                                   Path('/home/tzu-yu/test.svg'),
                                   x_label='[PriA] (pM)',
                                   y_label=r'$k_{obs}$ (s$^{-1}$)',
-                                  left_bottom_as_origin=True)
+                                  left_bottom_as_origin=True,
+                                  x_raw=conc, y_raw=1/time)
 
 
 if __name__ == '__main__':
