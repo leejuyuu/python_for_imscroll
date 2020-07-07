@@ -22,6 +22,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import xarray as xr
 import numpy as np
+import seaborn as sns
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
 
@@ -149,12 +150,21 @@ def plot_error_and_linear_fit(x, y, y_err, fit_result: dict,
                                 y_label: str = '',
                                 left_bottom_as_origin=False,
                                 y_top=None,
-                                x_right=None):
+                                x_right=None,
+                              x_raw=None,
+                              y_raw=None):
+    sns.set_palette(palette='muted')
+    np.random.seed(0)
     fig, ax = plt.subplots(figsize=(4, 3))
-    ax.errorbar(x, y, yerr=y_err, marker='o', linestyle='', capsize=1)
+
+    sns.despine(fig, ax)
+    # ax.set_xticks(sorted(x))
+    ax.errorbar(x, y, yerr=y_err, marker='o', ms=5, linestyle='', capsize=2)
     line_x = np.array([min(x), max(x)])
     line_y = line_x * fit_result['slope'] + fit_result['intercept']
-    ax.plot(line_x, line_y)
+    ax.plot(line_x, line_y, zorder=0)
+    x_jitter = 0.01 * (x_raw.max()-x_raw.min()) * np.random.standard_normal(x_raw.shape)
+    ax.scatter(x=x_raw + x_jitter, y=y_raw, marker='o', color='w', edgecolors='gray', linewidth=1, s=14, zorder=3)
     if left_bottom_as_origin:
         ax.set_xlim(left=0)
         ax.set_ylim(bottom=0)
