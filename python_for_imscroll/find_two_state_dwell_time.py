@@ -129,8 +129,8 @@ def fit_biexponential(data):
                  + np.sum(np.log(S(right_censored, *param)))
                  + np.sum(np.log(1-S(left_censored, *param))))
     k_guess = 1/np.mean(data.time)
-    result = optimize.minimize(n_log_lik, [k_guess*1.5, k_guess/3, 0.5],
-                                  bounds=((1e-7, np.inf), (1e-7, np.inf), (0, 1)),
+    result = optimize.minimize(n_log_lik, [k_guess, k_guess/1.5, 0.5],
+                                  bounds=((1e-7, 1), (1e-7, 1), (0, 1)),
                                   method='L-BFGS-B')
     return result
 
