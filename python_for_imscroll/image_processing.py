@@ -1,6 +1,6 @@
 from pathlib import Path
 import math
-from typing import Union
+from typing import Union, Tuple
 import scipy.io as sio
 import scipy.ndimage
 import scipy.optimize
@@ -53,6 +53,15 @@ class ImageSequence:
     def get_whole_stack(self):
         return np.stack([self.get_one_frame(frame) for frame in range(self.length)],
                         axis=-1)
+
+    def get_averaged_image(self, start=0, size=1):
+        start = int(start)
+        size = int(size)
+        image = 0
+        for frame in range(start, start + size):
+            image += self.get_one_frame(frame)
+        return image / size
+
 
 
 def conv2(v1, v2, m, mode='same'):
@@ -276,11 +285,44 @@ class Aois():
                        for i in range(len(self)))
         return gen_objects
 
+    def get_subimage_slice(self) -> Tuple[slice, slice]:
+        if len(self) == 1:
+            offset = self.width/2 - 0.5
+            if self.width % 2:  # Round to int (array element center)
+                center = np.round(self._coords)
+            else:  # Round to 0.5 (array grid lines)
+                center = np.round(self._coords - 0.5) + 0.5
+            bounds = (center[:, np.newaxis] + np.array([[-offset, offset+1]])).astype(int)
+            return (slice(*bounds[1]), slice(*bounds[0]))
+        raise ValueError('Wrong AOI length')
+
+    def gaussian_refine(self, image):
+        fit_result = np.zeros((len(self), 5))
+
+        for i, aoi in enumerate(self.iter_objects()):
+            subimg_slice = aoi.get_subimage_slice()
+            subimg_origin = [slice_obj.start for slice_obj in subimg_slice]
+            subimg_origin.reverse()
+            x = np.arange(aoi.width)[np.newaxis, :]
+            xy = [x, x]
+            z = image[subimg_slice].ravel()
+            fit_result[i] = fit_2d_gaussian(xy, z)
+            fit_result[i, 1:3] += subimg_origin
+
+        new_aois = Aois(fit_result[:, 1:3],
+                        frame=self.frame,
+                        frame_avg=self.frame_avg,
+                        width=self.width)
+        return new_aois
+
+
+
+
 def symmetric_2d_gaussian(xy, A, x0, y0, sigma, h):
     x, y = xy
     y = y.T
     denominator = (x - x0)**2 + (y - y0)**2
-    return (A*np.exp(-denominator/(2*sigma)) + h).ravel()
+    return (A*np.exp(-denominator/(2*sigma**2)) + h).ravel()
 
 
 def fit_2d_gaussian(xy, z):

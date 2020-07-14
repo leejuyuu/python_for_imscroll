@@ -267,3 +267,44 @@ def test_Aois_iter_objects():
         assert aoi.frame_avg == 1
         assert len(aoi) == 1
         assert (aoi._coords == i).all()
+
+
+def test_aoi_get_subimage():
+    aois = imp.Aois(np.tile(np.arange(10), (2, 1)).T, frame=0)
+    for aoi in aois.iter_objects():
+        subimage_idx = aoi.get_subimage_slice()
+        assert isinstance(subimage_idx, tuple)
+        assert len(subimage_idx) == 2
+        y_slice, x_slice = subimage_idx
+        assert y_slice.stop - y_slice.start == 5
+        assert x_slice.stop - x_slice.start == 5
+
+
+def test_aoi_gaussian_refine():
+    image_path = pathlib.Path(__file__).parent / 'test_data/20200228/hwligroup00774'
+    image_sequence = imp.ImageSequence(image_path)
+    aoiinfo_path = pathlib.Path(__file__).parent / 'test_data/20200228/L2_aoi.dat'
+    aoiinfo = sio.loadmat(aoiinfo_path)['aoiinfo2']
+    # The imscroll image was transposed, so there is a reversion of the coords
+    aois = imp.Aois(aoiinfo[:, [3, 2]] - 1, aoiinfo[0, 0], aoiinfo[0, 1], aoiinfo[0, 4])
+    true_image_path = pathlib.Path(__file__).parent / 'test_data/20200228/averaged_im.mat'
+    true_image = sio.loadmat(true_image_path)['currentFrameImage'].T
+    new_aois = aois.gaussian_refine(true_image)
+    aoifits_path = pathlib.Path(__file__).parent / 'test_data/20200228/10_frame_fit.dat'
+    aoifits = sio.loadmat(aoifits_path)['aoifits']['data'][0, 0]
+    np.testing.assert_allclose(new_aois._coords, aoifits[:, [4, 3]] - 1, atol=0.0002, rtol=0)
+
+    # Tolerate more error since I will use float averaged_image here (not rounded)
+    averaged_image = image_sequence.get_averaged_image(start=aoiinfo[0, 0]-1, size=aoiinfo[0, 1])
+    new_aois = aois.gaussian_refine(averaged_image)
+    np.testing.assert_allclose(new_aois._coords, aoifits[:, [4, 3]] - 1, atol=0.0015, rtol=0)
+
+
+def test_get_averaged_image():
+    # Check that the averaged image is withing rounding error
+    image_path = pathlib.Path(__file__).parent / 'test_data/20200228/hwligroup00774'
+    image_sequence = imp.ImageSequence(image_path)
+    averaged_image = image_sequence.get_averaged_image(start=0, size=10)
+    true_path = pathlib.Path(__file__).parent / 'test_data/20200228/averaged_im.mat'
+    true_image = sio.loadmat(true_path)['currentFrameImage'].T
+    np.testing.assert_allclose(averaged_image, true_image, atol=0.5)
