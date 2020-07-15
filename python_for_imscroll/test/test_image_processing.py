@@ -167,6 +167,11 @@ def test_aois_class():
     assert (1, 1) not in aois
     assert (1, 1, 1) not in aois
 
+    old_coords = aois._coords
+    new_aois = aois + (105.2, 50)
+    np.testing.assert_equal(new_aois._coords[:-1, :], old_coords)
+    np.testing.assert_equal(new_aois._coords[-1, :], np.array((105.2, 50)))
+
 
 def test_remove_close_aois():
     # x spacing

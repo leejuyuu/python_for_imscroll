@@ -315,6 +315,15 @@ class Aois():
                         width=self.width)
         return new_aois
 
+    def __add__(self, other):
+        if isinstance(other, tuple) and len(other) == 2:
+            new_aois = Aois(np.concatenate((self._coords, np.array(other)[np.newaxis]), axis=0),
+                            frame=self.frame,
+                            frame_avg=self.frame_avg,
+                            width=self.width)
+            return new_aois
+        raise TypeError('Aois class addition only accepts tuples with len == 2')
+
 
 
 
