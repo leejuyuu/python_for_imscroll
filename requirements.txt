@@ -33,8 +33,6 @@ pycodestyle==2.5.0
 pycparser==2.19
 pylint==2.4.4
 pyparsing==2.4.6
-PyQt5==5.14.2
-PyQt5-sip==12.7.0
 pyqtgraph==0.11.0
 PySide2==5.14.2.1
 pytest==5.3.5
