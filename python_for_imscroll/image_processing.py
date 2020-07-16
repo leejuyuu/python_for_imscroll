@@ -82,13 +82,9 @@ def band_pass(image: np.ndarray, r_noise, r_object):
     if r_noise:
         gauss_kernel_size = np.ceil(r_noise * 5)
         x = np.arange(-gauss_kernel_size, gauss_kernel_size+1)
-        print(x)
         gaussian_kernel = normalize(np.exp(-(x/r_noise/2)**2))
     else:
         gaussian_kernel = 1
-    print(gaussian_kernel)
-    print(sum(gaussian_kernel))
-    print(np.arange(10)**2)
     gauss_filtered_image = conv2(gaussian_kernel, gaussian_kernel, image)
 
     if r_object:
