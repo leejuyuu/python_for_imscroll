@@ -18,6 +18,7 @@ class MyImageView(pg.ImageView):
         self.view_box.setAspectLocked(lock=True)
         self.aois_view.pick_aois.connect(self.model.pick_spots, QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
+        self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
@@ -25,7 +26,6 @@ class MyImageView(pg.ImageView):
         self.view_box.setLimits(xMin=0, xMax=image_sequence.width, yMin=0, yMax=image_sequence.height)
         self.setImage(image, axes={'t': 2, 'x': 1, 'y': 0})
         self.view_box.setRange(yRange=(0, image_sequence.height))
-
 
     @QtCore.Slot()
     def onPickButtonPressed(self):
@@ -38,6 +38,8 @@ class Model(QtCore.QObject):
         super().__init__()
         self.aois: imp.Aois = None
         self.image_sequence: imp.ImageSequence = None
+        self._current_frame = 0
+
 
     def get_coords(self):
         if self.aois is None:
@@ -49,11 +51,28 @@ class Model(QtCore.QObject):
         self.aois = aois
 
     def pick_spots(self):
-        self.aois = imp.pick_spots(self.image_sequence.get_averaged_image(size=10),
-                                   threshold=50,
+        self.aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=1),
+                                   threshold=100,
                                    noise_dia=1,
                                    spot_dia=5)
         self.aois_changed.emit()
+
+    @QtCore.Slot(int)
+    def change_current_frame(self, new_frame_index: int):
+        self._current_frame = new_frame_index
+
+    @property
+    def current_frame(self):
+        return self._current_frame
+
+    @current_frame.setter
+    def current_frame(self, new_value: int):
+        new_value = int(new_value)
+        if new_value > len(self.image_sequence):
+            new_value = len(self.image_sequence)
+        elif new_value < 0:
+            new_value = 0
+        self._current_frame = new_value
 
 class AoisView(QtCore.QObject):
     pick_aois = QtCore.Signal()
@@ -64,10 +83,6 @@ class AoisView(QtCore.QObject):
         self.model = model
         self.update()
         view_box.addItem(self.marker)
-
-    @QtCore.Slot()
-    def sss(self):
-        print(123)
 
     @QtCore.Slot()
     def update(self):
