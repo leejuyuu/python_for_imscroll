@@ -4,7 +4,7 @@ import sys
 import typing
 import numpy as np
 import pyqtgraph as pg
-from PySide2 import QtWidgets, QtQuickWidgets, QtCore, QtQml
+from PySide2 import QtWidgets, QtQuickWidgets, QtCore
 from PySide2.QtCore import Qt
 import python_for_imscroll.image_processing as imp
 
@@ -32,7 +32,8 @@ class MyImageView(pg.ImageView):
         self.aois_view = AoisView(self.view_box, self.model)
         self.view_box.setAspectLocked(lock=True)
         self.aois_view.pick_aois.connect(self.model.pick_spots, QtCore.Qt.UniqueConnection)
-        self.aois_view.gaussian_refine.connect(self.model.gaussian_refine_aois, QtCore.Qt.UniqueConnection)
+        self.aois_view.gaussian_refine.connect(self.model.gaussian_refine_aois,
+                                               QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
         self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
         self.crossHairActive = False
@@ -41,7 +42,8 @@ class MyImageView(pg.ImageView):
         self.view_box.addItem(self.vLine, ignoreBounds=True)
         self.view_box.addItem(self.hLine, ignoreBounds=True)
         imageItem = self.getImageItem()
-        self.proxy = pg.SignalProxy(self.view_box.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.proxy = pg.SignalProxy(self.view_box.scene().sigMouseMoved,
+                                    rateLimit=60, slot=self.mouseMoved)
         self.view_box.scene().sigMouseClicked.connect(self.onMouseClicked)
         self.coord_get.connect(self.model.process_new_coord)
         self.change_aois_state.connect(self.model.change_aois_state)
@@ -49,7 +51,8 @@ class MyImageView(pg.ImageView):
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
         image = image_sequence.get_whole_stack()
-        self.view_box.setLimits(xMin=0, xMax=image_sequence.width, yMin=0, yMax=image_sequence.height)
+        self.view_box.setLimits(xMin=0, xMax=image_sequence.width,
+                                yMin=0, yMax=image_sequence.height)
         self.setImage(image, axes={'t': 2, 'x': 1, 'y': 0})
         self.view_box.setRange(yRange=(0, image_sequence.height))
 
@@ -99,10 +102,8 @@ class Model(QtCore.QObject):
         self.pick_spots_param = PickSpotsParam()
         self.aois_edit_state = 'idle'
 
-
     def get_coords(self):
         if self.aois is None:
-            # return (None, None)
             return (np.empty(1), np.empty(1))
         return (self.aois.get_all_x(), self.aois.get_all_y())
 
@@ -141,14 +142,12 @@ class Model(QtCore.QObject):
     def dummy_notify(self):
         pass
 
-
     def get_current_frame_image(self):
         return self.image_sequence.get_one_frame(self._current_frame)
 
     @QtCore.Slot()
     def gaussian_refine_aois(self):
         current_image = self.get_current_frame_image()
-        aois_old = self.aois._coords
         self.aois = self.aois.gaussian_refine(image=current_image)
         self.aois_changed.emit()
 
@@ -169,7 +168,6 @@ class Model(QtCore.QObject):
 class PickSpotsParam(QtCore.QAbstractListModel):
     def __init__(self):
         super().__init__()
-        NV = namedtuple('NV', ['name', 'value'])
         self.property_names = [SPOT_DIA_STR, NOISE_DIA_STR, SPOT_BRIGHTNESS_STR]
         self.params = {SPOT_DIA_STR: 5,
                        NOISE_DIA_STR: 1,
@@ -191,9 +189,7 @@ class PickSpotsParam(QtCore.QAbstractListModel):
     def data(self, index: QtCore.QModelIndex, role: int = Qt.DisplayRole):
         """See base class."""
         name = self.property_names[index.row()]
-        if role == Qt.DisplayRole:
-            return self.params[name]
-        if role == Qt.EditRole:
+        if role in (Qt.DisplayRole, Qt.EditRole):
             return self.params[name]
         if role == PROPERTY_NAME_ROLE:
             return name
@@ -203,6 +199,7 @@ class PickSpotsParam(QtCore.QAbstractListModel):
             return SPOT_PARAMS_RANGE[name].max
         if role == Qt.UserRole + 12:
             return SPOT_PARAMS_RANGE[name].step
+        return None
 
     def setData(self, index: QtCore.QModelIndex, value: typing.Any,
                 role: int = None) -> bool:
@@ -235,7 +232,9 @@ class AoisView(QtCore.QObject):
     def update(self):
         coords = self.model.get_coords()
         # The coordinate of the view starts from the edge, so offsets 0.5
-        self.marker.setData(coords[0] + 0.5, coords[1] + 0.5, symbol='s', pen=(0, 0, 255), brush=None, size=5, pxMode=False)
+        self.marker.setData(coords[0] + 0.5, coords[1] + 0.5, symbol='s',
+                            pen=(0, 0, 255), brush=None, size=5, pxMode=False)
+
 
 class Window(QtWidgets.QWidget):
 
@@ -251,7 +250,7 @@ class Window(QtWidgets.QWidget):
         root_context = self.qml.rootContext()
         root_context.setContextProperty('imageView', self.image_view)
         root_context.setContextProperty('dataModel', self.image_view.model)
-        # root_context.setContextProperty('hhh', self.image_view.model.pickSpotsParam)
+
         # Need to set context property before set source
         self.qml.setSource(QtCore.QUrl(str(qml_path)))
 
@@ -263,28 +262,23 @@ class Window(QtWidgets.QWidget):
 
 
 def main():
-    path = Path('/run/media/tzu-yu/linuxData/Git_repos/python_for_imscroll/python_for_imscroll/test/test_data/fake_im/')
     path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/20200206_mapping/map/hwligroup00688/')
     image_sequence = imp.ImageSequence(path)
-    image = image_sequence.get_whole_stack()
 
-
-    ## Always start by initializing Qt (only once per application)
+    # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication([])
 
     window = Window()
-    # imv = MyImageView()
     window.image_view.setSequence(image_sequence)
     window.image_view.model.image_sequence = image_sequence
     window.show()
 
-
-
-    ## Start the Qt event loop
+    # Start the Qt event loop
     app.exec_()
-    model = window.image_view.model # This line here is to make sure the context property lives before qml quits
+    model = window.image_view.model
+    # This line here is to make sure the context property lives before qml quits
     # To avoid a warning thrown by the qml
     # cannot think of a better way right now
     sys.exit()
