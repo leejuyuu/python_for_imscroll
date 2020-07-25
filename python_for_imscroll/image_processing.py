@@ -24,7 +24,8 @@ class ImageSequence:
         """
         Return one frame image in the sequence.
         """
-        if not (isinstance(frame, int) and frame >= 0):
+        frame = int(frame)
+        if frame < 0:
             raise ValueError('Frame number must be positive integers or 0.')
         if frame >= self.length:
             err_str = 'Frame number ({}) exceeds sequence length - 1 ({})'.format(self.length,

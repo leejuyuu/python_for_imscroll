@@ -29,7 +29,7 @@ def test_read_glimpse_image():
         assert exception_info.value == 'Frame number must be positive integers or 0'
 
     with pytest.raises(ValueError) as exception_info:
-        image_sequence.get_one_frame(1.1)
+        image_sequence.get_one_frame('')
         assert exception_info.value == 'Frame number must be positive integers or 0'
 
     with pytest.raises(ValueError) as exception_info:
