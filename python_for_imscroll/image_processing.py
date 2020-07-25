@@ -321,7 +321,16 @@ class Aois():
             return new_aois
         raise TypeError('Aois class addition only accepts tuples with len == 2')
 
-
+    def remove_aoi_nearest_to_ref(self, ref_aoi: Tuple[float, float]) -> 'Aois':
+        ref_aoi = np.array(ref_aoi)[np.newaxis]
+        dist = np.sum((self._coords - ref_aoi)**2, axis=1)
+        removing_idx = np.argmin(dist)
+        new_coords = np.delete(self._coords, removing_idx, axis=0)
+        new_aois = Aois(new_coords,
+                        frame=self.frame,
+                        frame_avg=self.frame_avg,
+                        width=self.width)
+        return new_aois
 
 
 def symmetric_2d_gaussian(xy, A, x0, y0, sigma, h):

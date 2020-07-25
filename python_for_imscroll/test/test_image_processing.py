@@ -313,3 +313,22 @@ def test_get_averaged_image():
     true_path = pathlib.Path(__file__).parent / 'test_data/20200228/averaged_im.mat'
     true_image = sio.loadmat(true_path)['currentFrameImage'].T
     np.testing.assert_allclose(averaged_image, true_image, atol=0.5)
+
+def test_remove_aoi_nearest_to_ref():
+    arr = np.array([[0, 1],
+                    [10, 10],
+                    [100, 50],
+                    [100, 52],
+                    [100, 49],
+                    [200, 100],
+                    [300, 70],
+                    [400, 80],
+                    [786, 520],
+                    [150, 200]])
+    aois = imp.Aois(arr, 5, 10, 7)
+    new_aois = aois.remove_aoi_nearest_to_ref((0.5, 2))
+    assert isinstance(new_aois, imp.Aois)
+    assert new_aois.width == aois.width
+    assert new_aois.frame == aois.frame
+    assert new_aois.frame_avg == aois.frame_avg
+    np.testing.assert_equal(new_aois._coords, arr[1:, :])
