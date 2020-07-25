@@ -297,7 +297,7 @@ def test_aoi_gaussian_refine():
     new_aois = aois.gaussian_refine(true_image)
     aoifits_path = pathlib.Path(__file__).parent / 'test_data/20200228/10_frame_fit.dat'
     aoifits = sio.loadmat(aoifits_path)['aoifits']['data'][0, 0]
-    np.testing.assert_allclose(new_aois._coords, aoifits[:, [4, 3]] - 1, atol=0.0002, rtol=0)
+    np.testing.assert_allclose(new_aois._coords, aoifits[:, [4, 3]] - 1, atol=0.0003, rtol=0)
 
     # Tolerate more error since I will use float averaged_image here (not rounded)
     averaged_image = image_sequence.get_averaged_image(start=aoiinfo[0, 0]-1, size=aoiinfo[0, 1])

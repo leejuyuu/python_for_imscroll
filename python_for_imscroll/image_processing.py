@@ -340,5 +340,9 @@ def fit_2d_gaussian(xy, z):
                                        xy,
                                        z,
                                        p0=param_0,
-                                       bounds=bounds)
+                                       bounds=bounds,
+                                       ftol=1e-6,
+                                       gtol=1e-6,
+                                       xtol=1e-10,
+                                       max_nfev=10000)
     return popt
