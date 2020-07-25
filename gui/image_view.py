@@ -69,6 +69,11 @@ class MyImageView(pg.ImageView):
         self.crossHairActive = True
         self.change_aois_state.emit('add')
 
+    @QtCore.Slot()
+    def onRemoveButtonPressed(self):
+        self.crossHairActive = True
+        self.change_aois_state.emit('remove')
+
     def onMouseClicked(self, event):
         if self.crossHairActive:
             button = event.button()
@@ -154,7 +159,14 @@ class Model(QtCore.QObject):
     @QtCore.Slot(tuple)
     def process_new_coord(self, coord: tuple):
         if self.aois_edit_state == 'add':
-            self.aois += coord
+            if self.aois is None:
+                self.aois = imp.Aois(np.array(coord)[np.newaxis, :],
+                                     frame=self._current_frame)
+            else:
+                self.aois += coord
+            self.aois_changed.emit()
+        elif self.aois is not None and self.aois_edit_state == 'remove':
+            self.aois = self.aois.remove_aoi_nearest_to_ref(coord)
             self.aois_changed.emit()
 
     @QtCore.Slot(str)

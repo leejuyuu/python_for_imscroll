@@ -30,6 +30,15 @@ Item{
         text: 'Add'
         onClicked: imageView.onAddButtonPressed()
     }
+    Button {
+        id: removeButton
+        width: 60
+        anchors {
+            left: addButton.right
+        }
+        text: 'Remove'
+        onClicked: imageView.onRemoveButtonPressed()
+    }
 
     ListView {
         anchors {
