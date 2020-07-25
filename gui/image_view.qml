@@ -6,17 +6,25 @@ Item{
     width: 300; height: 480
 
     Button {
-        id: button1
+        id: pickButton
         text: 'Pick'
         onClicked: imageView.onPickButtonPressed()
 
+    }
+    Button {
+        id: fitButton
+        anchors {
+            left: pickButton.right
+        }
+        text: 'Fit'
+        onClicked: imageView.onFitButtonPressed()
     }
 
     ListView {
         anchors {
             left: parent.left
             right: parent.right
-            top: button1.bottom
+            top: pickButton.bottom
             bottom: parent.bottom
         }
         model: dataModel.pickSpotsParam

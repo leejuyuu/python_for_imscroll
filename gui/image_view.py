@@ -30,6 +30,7 @@ class MyImageView(pg.ImageView):
         self.aois_view = AoisView(self.view_box, self.model)
         self.view_box.setAspectLocked(lock=True)
         self.aois_view.pick_aois.connect(self.model.pick_spots, QtCore.Qt.UniqueConnection)
+        self.aois_view.gaussian_refine.connect(self.model.gaussian_refine_aois, QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
         self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
 
@@ -43,6 +44,10 @@ class MyImageView(pg.ImageView):
     @QtCore.Slot()
     def onPickButtonPressed(self):
         self.aois_view.pick_aois.emit()
+
+    @QtCore.Slot()
+    def onFitButtonPressed(self):
+        self.aois_view.gaussian_refine.emit()
 
 class Model(QtCore.QObject):
 
@@ -95,6 +100,17 @@ class Model(QtCore.QObject):
     @QtCore.Signal
     def dummy_notify(self):
         pass
+
+
+    def get_current_frame_image(self):
+        return self.image_sequence.get_one_frame(self._current_frame)
+
+    @QtCore.Slot()
+    def gaussian_refine_aois(self):
+        current_image = self.get_current_frame_image()
+        aois_old = self.aois._coords
+        self.aois = self.aois.gaussian_refine(image=current_image)
+        self.aois_changed.emit()
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,
@@ -156,6 +172,7 @@ class PickSpotsParam(QtCore.QAbstractListModel):
 
 class AoisView(QtCore.QObject):
     pick_aois = QtCore.Signal()
+    gaussian_refine = QtCore.Signal()
     def __init__(self, view_box, model):
         super().__init__()
         self.marker = pg.ScatterPlotItem()
