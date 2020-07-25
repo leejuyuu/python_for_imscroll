@@ -22,6 +22,8 @@ SPOT_PARAMS_RANGE = {SPOT_DIA_STR: ValueRange(0, 100, 0.5),
 PROPERTY_NAME_ROLE = Qt.UserRole + 1
 
 class MyImageView(pg.ImageView):
+    coord_get = QtCore.Signal(tuple)
+    change_aois_state = QtCore.Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -33,6 +35,16 @@ class MyImageView(pg.ImageView):
         self.aois_view.gaussian_refine.connect(self.model.gaussian_refine_aois, QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
         self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
+        self.crossHairActive = False
+        self.vLine = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine = pg.InfiniteLine(angle=0, movable=False)
+        self.view_box.addItem(self.vLine, ignoreBounds=True)
+        self.view_box.addItem(self.hLine, ignoreBounds=True)
+        imageItem = self.getImageItem()
+        self.proxy = pg.SignalProxy(self.view_box.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved)
+        self.view_box.scene().sigMouseClicked.connect(self.onMouseClicked)
+        self.coord_get.connect(self.model.process_new_coord)
+        self.change_aois_state.connect(self.model.change_aois_state)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
@@ -49,6 +61,33 @@ class MyImageView(pg.ImageView):
     def onFitButtonPressed(self):
         self.aois_view.gaussian_refine.emit()
 
+    @QtCore.Slot()
+    def onAddButtonPressed(self):
+        self.crossHairActive = True
+        self.change_aois_state.emit('add')
+
+    def onMouseClicked(self, event):
+        if self.crossHairActive:
+            button = event.button()
+            if button == Qt.MouseButton.LeftButton:
+                point: QtCore.QPointF = self.view_box.mapSceneToView(event.scenePos())
+                coord = (point.x(), point.y())
+                self.coord_get.emit(coord)
+            elif button == Qt.MouseButton.RightButton:
+                self.crossHairActive = False
+                self.hLine.setValue(0)
+                self.vLine.setValue(0)
+                self.change_aois_state.emit('idle')
+
+
+    def mouseMoved(self, evt):
+        pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+        if self.crossHairActive and self.view_box.sceneBoundingRect().contains(pos):
+            mousePoint = self.view_box.mapSceneToView(pos)
+            self.vLine.setPos(mousePoint.x())
+            self.hLine.setPos(mousePoint.y())
+
+
 class Model(QtCore.QObject):
 
     aois_changed = QtCore.Signal()
@@ -58,6 +97,7 @@ class Model(QtCore.QObject):
         self.image_sequence: imp.ImageSequence = None
         self._current_frame = 0
         self.pick_spots_param = PickSpotsParam()
+        self.aois_edit_state = 'idle'
 
 
     def get_coords(self):
@@ -111,6 +151,16 @@ class Model(QtCore.QObject):
         aois_old = self.aois._coords
         self.aois = self.aois.gaussian_refine(image=current_image)
         self.aois_changed.emit()
+
+    @QtCore.Slot(tuple)
+    def process_new_coord(self, coord: tuple):
+        if self.aois_edit_state == 'add':
+            self.aois += coord
+            self.aois_changed.emit()
+
+    @QtCore.Slot(str)
+    def change_aois_state(self, new_state: str):
+        self.aois_edit_state = new_state
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,

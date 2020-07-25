@@ -7,17 +7,28 @@ Item{
 
     Button {
         id: pickButton
+        width: 60
         text: 'Pick'
         onClicked: imageView.onPickButtonPressed()
 
     }
     Button {
         id: fitButton
+        width: 60
         anchors {
             left: pickButton.right
         }
         text: 'Fit'
         onClicked: imageView.onFitButtonPressed()
+    }
+    Button {
+        id: addButton
+        width: 60
+        anchors {
+            left: fitButton.right
+        }
+        text: 'Add'
+        onClicked: imageView.onAddButtonPressed()
     }
 
     ListView {
