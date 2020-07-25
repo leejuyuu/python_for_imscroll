@@ -100,7 +100,7 @@ def test_localize_centroid():
     image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_cntrd_71_5.mat')
     test_image = sio.loadmat(image_path)['filteredImage']
     peaks = sio.loadmat(image_path)['spotCoords'] - 1  # Minus 1 to convert to 0 based index
-    true_output = sio.loadmat(image_path)['out'][:, 0:2]  # First two columns are x, y coords
+    true_output = sio.loadmat(image_path)['out'][:, 0:2] - 1  # First two columns are x, y coords
     output = imp.localize_centroid(test_image, peaks, 5+2)
     assert isinstance(output, np.ndarray)
     assert output.shape[1] == 2

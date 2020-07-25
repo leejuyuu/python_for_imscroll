@@ -168,7 +168,7 @@ class AoisView(QtCore.QObject):
     def update(self):
         coords = self.model.get_coords()
         # The coordinate of the view starts from the edge, so offsets 0.5
-        self.marker.setData(coords[0] - 0.5, coords[1] - 0.5, symbol='s', pen=(0, 0, 255), brush=None, size=5, pxMode=False)
+        self.marker.setData(coords[0] + 0.5, coords[1] + 0.5, symbol='s', pen=(0, 0, 255), brush=None, size=5, pxMode=False)
 
 class Window(QtWidgets.QWidget):
 

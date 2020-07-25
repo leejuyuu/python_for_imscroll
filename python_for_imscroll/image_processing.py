@@ -159,7 +159,7 @@ def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
     peaks = peaks[is_in_range, :]
 
     radius = int((dia + 1)/2)
-    x_weight = np.tile(np.arange(1, 2*radius + 1), (2*radius, 1))
+    x_weight = np.tile(np.arange(2*radius), (2*radius, 1))
     y_weight = x_weight.T
     mask = _create_circular_mask(2*radius, radius=radius)
 
