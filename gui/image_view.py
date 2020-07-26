@@ -11,13 +11,17 @@ import python_for_imscroll.image_processing as imp
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
+AOI_WIDTH_STR = 'AOI width'
 SPOT_DIA_STR = 'Spot diameter'
 NOISE_DIA_STR = 'Noise diameter'
 SPOT_BRIGHTNESS_STR = 'Spot brightness'
+DIST_STR = 'Distance threshold'
 ValueRange = namedtuple('ValueRange', ('min', 'max', 'step'))
 SPOT_PARAMS_RANGE = {SPOT_DIA_STR: ValueRange(1, 99, 2),
                      NOISE_DIA_STR: ValueRange(0, 10, 1),
-                     SPOT_BRIGHTNESS_STR: ValueRange(0, 1000, 1)}
+                     SPOT_BRIGHTNESS_STR: ValueRange(0, 1000, 1),
+                     AOI_WIDTH_STR: ValueRange(1, 100, 1),
+                     DIST_STR: ValueRange(0, 100, 1)}
 
 PROPERTY_NAME_ROLE = Qt.UserRole + 1
 
@@ -120,7 +124,10 @@ class Model(QtCore.QObject):
         self.aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=1),
                                    threshold=params[SPOT_BRIGHTNESS_STR],
                                    noise_dia=params[NOISE_DIA_STR],
-                                   spot_dia=params[SPOT_DIA_STR])
+                                   spot_dia=params[SPOT_DIA_STR],
+                                   frame=self.current_frame,
+                                   aoi_width=params[AOI_WIDTH_STR],
+                                   frame_avg=1)
         self.aois_changed.emit()
 
     @QtCore.Slot(int)
@@ -180,10 +187,16 @@ class Model(QtCore.QObject):
 class PickSpotsParam(QtCore.QAbstractListModel):
     def __init__(self):
         super().__init__()
-        self.property_names = [SPOT_DIA_STR, NOISE_DIA_STR, SPOT_BRIGHTNESS_STR]
-        self.params = {SPOT_DIA_STR: 5,
+        self.property_names = [AOI_WIDTH_STR,
+                               SPOT_DIA_STR,
+                               NOISE_DIA_STR,
+                               SPOT_BRIGHTNESS_STR,
+                               DIST_STR]
+        self.params = {AOI_WIDTH_STR: 5,
+                       SPOT_DIA_STR: 5,
                        NOISE_DIA_STR: 1,
-                       SPOT_BRIGHTNESS_STR: 50}
+                       SPOT_BRIGHTNESS_STR: 50,
+                       DIST_STR: 5}
 
     def roleNames(self):
         """See base class."""
