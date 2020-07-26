@@ -116,6 +116,9 @@ class Model(QtCore.QObject):
             return (np.empty(1), np.empty(1))
         return (self.aois.get_all_x(), self.aois.get_all_y())
 
+    def get_aoi_width(self):
+        return self.pickSpotsParam.params[AOI_WIDTH_STR]
+
     def set_aois(self, aois):
         self.aois = aois
 
@@ -256,9 +259,10 @@ class AoisView(QtCore.QObject):
     @QtCore.Slot()
     def update(self):
         coords = self.model.get_coords()
+        aoi_width = self.model.get_aoi_width()
         # The coordinate of the view starts from the edge, so offsets 0.5
         self.marker.setData(coords[0] + 0.5, coords[1] + 0.5, symbol='s',
-                            pen=(0, 0, 255), brush=None, size=5, pxMode=False)
+                            pen=(0, 0, 255), brush=None, size=aoi_width, pxMode=False)
 
 
 class Window(QtWidgets.QWidget):
