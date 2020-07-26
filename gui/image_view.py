@@ -15,8 +15,8 @@ SPOT_DIA_STR = 'Spot diameter'
 NOISE_DIA_STR = 'Noise diameter'
 SPOT_BRIGHTNESS_STR = 'Spot brightness'
 ValueRange = namedtuple('ValueRange', ('min', 'max', 'step'))
-SPOT_PARAMS_RANGE = {SPOT_DIA_STR: ValueRange(0, 100, 0.5),
-                     NOISE_DIA_STR: ValueRange(0, 10, 0.2),
+SPOT_PARAMS_RANGE = {SPOT_DIA_STR: ValueRange(1, 99, 2),
+                     NOISE_DIA_STR: ValueRange(0, 10, 1),
                      SPOT_BRIGHTNESS_STR: ValueRange(0, 1000, 1)}
 
 PROPERTY_NAME_ROLE = Qt.UserRole + 1
