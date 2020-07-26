@@ -258,7 +258,7 @@ class Window(QtWidgets.QWidget):
 
         self.qml = QtQuickWidgets.QQuickWidget()
         # self.qml.setResizeMode(QtQuickWidgets.QQuickWidget.SizeRootObjectToView)
-        qml_path = Path(__file__).parent / 'image_view.qml'
+        qml_path = Path(__file__).parent / 'qml/image_view.qml'
         root_context = self.qml.rootContext()
         root_context.setContextProperty('imageView', self.image_view)
         root_context.setContextProperty('dataModel', self.image_view.model)
