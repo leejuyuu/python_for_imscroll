@@ -41,11 +41,12 @@ Item{
     }
 
     ListView {
+        id: list
+        height: 250
         anchors {
             left: parent.left
             right: parent.right
             top: pickButton.bottom
-            bottom: parent.bottom
         }
         model: dataModel.pickSpotsParam
         interactive: false
@@ -81,6 +82,12 @@ Item{
                 onValueModified: {model.edit = value}
             }
         }
+    }
+    Button {
+        id: removeCloseButton
+        anchors.top: list.bottom
+        text: 'Remove close AOI'
+        onClicked: imageView.onRemoveCloseButtonPressed()
     }
 
 }

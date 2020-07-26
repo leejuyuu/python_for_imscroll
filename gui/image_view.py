@@ -28,6 +28,7 @@ PROPERTY_NAME_ROLE = Qt.UserRole + 1
 class MyImageView(pg.ImageView):
     coord_get = QtCore.Signal(tuple)
     change_aois_state = QtCore.Signal(str)
+    remove_close_aoi = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
@@ -51,6 +52,7 @@ class MyImageView(pg.ImageView):
         self.view_box.scene().sigMouseClicked.connect(self.onMouseClicked)
         self.coord_get.connect(self.model.process_new_coord)
         self.change_aois_state.connect(self.model.change_aois_state)
+        self.remove_close_aoi.connect(self.model.remove_close_aoi)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
@@ -77,6 +79,10 @@ class MyImageView(pg.ImageView):
     def onRemoveButtonPressed(self):
         self.crossHairActive = True
         self.change_aois_state.emit('remove')
+
+    @QtCore.Slot()
+    def onRemoveCloseButtonPressed(self):
+        self.remove_close_aoi.emit()
 
     def onMouseClicked(self, event):
         if self.crossHairActive:
@@ -182,6 +188,11 @@ class Model(QtCore.QObject):
     @QtCore.Slot(str)
     def change_aois_state(self, new_state: str):
         self.aois_edit_state = new_state
+
+    def remove_close_aoi(self):
+        dist_threshold = self.pickSpotsParam.params[DIST_STR]
+        self.aois = self.aois.remove_close_aois(dist_threshold)
+        self.aois_changed.emit()
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,
