@@ -192,11 +192,11 @@ def _create_circular_mask(w, center=None, radius: float = None):
     return mask
 
 
-def pick_spots(image, threshold=50, noise_dia=1, spot_dia=5):
+def pick_spots(image, threshold=50, noise_dia=1, spot_dia=5, frame=0, aoi_width=5, frame_avg=1):
     filtered_image = band_pass(image, r_noise=noise_dia, r_object=spot_dia)
     peaks = find_peaks(filtered_image, threshold=threshold, peak_size=spot_dia)
     peak_centroids = localize_centroid(filtered_image, peaks=peaks, dia=spot_dia)
-    return Aois(peak_centroids, frame=0)
+    return Aois(peak_centroids, frame=frame, width=aoi_width, frame_avg=frame_avg)
 
 
 class Aois():
