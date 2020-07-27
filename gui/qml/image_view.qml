@@ -87,7 +87,19 @@ Item{
         id: removeCloseButton
         anchors.top: list.bottom
         text: 'Remove close AOI'
-        onClicked: imageView.onRemoveCloseButtonPressed()
+        onClicked: imageView.remove_close_aoi() // Signal defined in image_view.py
+    }
+    Button {
+        id: removeEmptyButton
+        anchors.top: removeCloseButton.bottom
+        text: 'Remove empty AOI'
+        onClicked: imageView.remove_empty_aoi()
+    }
+    Button {
+        id: removeOccupiedButton
+        anchors.top: removeEmptyButton.bottom
+        text: 'Remove occupied AOI'
+        onClicked: imageView.remove_occupied_aoi()
     }
 
 }
