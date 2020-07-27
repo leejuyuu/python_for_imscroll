@@ -3,7 +3,7 @@ import QtQuick.Controls 2.15
 
 Item{
     id: root
-    width: 300; height: 480
+    width: 500; height: 480
 
     Button {
         id: pickButton

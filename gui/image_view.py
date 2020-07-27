@@ -319,7 +319,7 @@ class Window(QtWidgets.QWidget):
 
         layout.addWidget(self.image_view)
         layout.addWidget(self.qml, 0, 1)
-        layout.setColumnStretch(0, 4)
+        layout.setColumnStretch(0, 3)
         layout.setColumnStretch(1, 1)
         self.setLayout(layout)
 
