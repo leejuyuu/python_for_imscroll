@@ -115,11 +115,20 @@ class Model(QtCore.QObject):
     aois_changed = QtCore.Signal()
     def __init__(self):
         super().__init__()
-        self.aois: imp.Aois = None
+        self._aois: imp.Aois = None
         self.image_sequence: imp.ImageSequence = None
         self._current_frame = 0
         self.pick_spots_param = PickSpotsParam()
         self.aois_edit_state = 'idle'
+
+    @property
+    def aois(self):
+        return self._aois
+
+    @aois.setter
+    def aois(self, value):
+        self._aois = value
+        self.aois_changed.emit()
 
     def get_coords(self):
         if self.aois is None:
@@ -145,7 +154,6 @@ class Model(QtCore.QObject):
 
     def pick_spots(self):
         self.aois = self._pick_spots_wrapped()
-        self.aois_changed.emit()
 
     @QtCore.Slot(int)
     def change_current_frame(self, new_frame_index: int):
@@ -178,7 +186,6 @@ class Model(QtCore.QObject):
     def gaussian_refine_aois(self):
         current_image = self.get_current_frame_image()
         self.aois = self.aois.gaussian_refine(image=current_image)
-        self.aois_changed.emit()
 
     @QtCore.Slot(tuple)
     def process_new_coord(self, coord: tuple):
@@ -188,10 +195,8 @@ class Model(QtCore.QObject):
                                      frame=self._current_frame)
             else:
                 self.aois += coord
-            self.aois_changed.emit()
         elif self.aois is not None and self.aois_edit_state == 'remove':
             self.aois = self.aois.remove_aoi_nearest_to_ref(coord)
-            self.aois_changed.emit()
 
     @QtCore.Slot(str)
     def change_aois_state(self, new_state: str):
@@ -200,14 +205,12 @@ class Model(QtCore.QObject):
     def remove_close_aoi(self):
         dist_threshold = self.pickSpotsParam.params[DIST_STR]
         self.aois = self.aois.remove_close_aois(dist_threshold)
-        self.aois_changed.emit()
 
     def remove_empty_aoi(self):
         dist_threshold = self.pickSpotsParam.params[DIST_STR]
         ref_aois = self._pick_spots_wrapped()
         self.aois = self.aois.remove_aois_far_from_ref(ref_aois,
                                                        radius=dist_threshold)
-        self.aois_changed.emit()
 
 
     def remove_occupied_aoi(self):
@@ -215,7 +218,6 @@ class Model(QtCore.QObject):
         ref_aois = self._pick_spots_wrapped()
         self.aois = self.aois.remove_aois_near_ref(ref_aois,
                                                    radius=dist_threshold)
-        self.aois_changed.emit()
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,
