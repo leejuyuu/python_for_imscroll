@@ -342,6 +342,16 @@ class Aois():
         params = np.fromiter(params.items(), dtype=dtype, count=len(params))
         np.savez(path, params=params, coords=self._coords)
 
+    def to_imscroll_aoiinfo2(self, path):
+        aoiinfo = np.zeros((len(self), 6))
+        aoiinfo[:, 0] = self.frame
+        aoiinfo[:, 1] = self.frame_avg
+        aoiinfo[:, 2] = self.get_all_y() + 1
+        aoiinfo[:, 3] = self.get_all_x() + 1
+        aoiinfo[:, 4] = self.width
+        aoiinfo[:, 5] = np.arange(1, len(self) + 1)
+        sio.savemat(path.with_suffix('.dat'), dict(aoiinfo2=aoiinfo))
+
     @classmethod
     def from_npz(cls, path):
         npz_file = np.load(path, allow_pickle=False)
