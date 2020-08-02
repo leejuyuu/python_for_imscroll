@@ -332,6 +332,25 @@ class Aois():
                         width=self.width)
         return new_aois
 
+    def to_npz(self, path):
+        params = {'frame': self.frame,
+                  'width': self.width,
+                  'frame_avg': self.frame_avg}
+        names = ['key', 'value']
+        formats = ['U10', int]
+        dtype = dict(names=names, formats=formats)
+        params = np.fromiter(params.items(), dtype=dtype, count=len(params))
+        np.savez(path, params=params, coords=self._coords)
+
+    @classmethod
+    def from_npz(cls, path):
+        npz_file = np.load(path, allow_pickle=False)
+        params_arr = npz_file['params']
+        params = {row['key']: row['value'] for row in params_arr}
+        coords = npz_file['coords']
+        aois = cls(coords, **params)
+        return aois
+
 
 def symmetric_2d_gaussian(xy, A, x0, y0, sigma, h):
     x, y = xy

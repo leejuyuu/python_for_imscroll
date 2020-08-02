@@ -332,3 +332,22 @@ def test_remove_aoi_nearest_to_ref():
     assert new_aois.frame == aois.frame
     assert new_aois.frame_avg == aois.frame_avg
     np.testing.assert_equal(new_aois._coords, arr[1:, :])
+
+def test_save_load_aois():
+    np.random.seed(0)
+    arr = np.random.random_sample((20, 2)) * 512
+    aois = imp.Aois(arr, 5, 10, 7)
+    save_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/python_for_imscroll/python_for_imscroll/test/test_data/save_path/aois')
+    actual_path = save_path.with_suffix('.npz')
+    if actual_path.exists() and actual_path.is_file():
+        actual_path.unlink()
+    aois.to_npz(save_path)
+    assert actual_path.exists()
+    assert actual_path.is_file()
+
+    new_aois = imp.Aois.from_npz(actual_path)
+    assert isinstance(new_aois, imp.Aois)
+    assert new_aois.width == aois.width
+    assert new_aois.frame == aois.frame
+    assert new_aois.frame_avg == aois.frame_avg
+    np.testing.assert_equal(new_aois._coords, arr)
