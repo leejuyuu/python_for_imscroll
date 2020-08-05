@@ -131,7 +131,7 @@ def fit_biexponential(data):
     k_guess = 1/np.mean(data.time)
     result = optimize.minimize(n_log_lik, [k_guess, k_guess/1.5, 0.5],
                                   bounds=((1e-7, 1), (1e-7, 1), (0, 1)),
-                                  method='Powell')
+                                  method='L-BFGS-B')
     return result
 
 
