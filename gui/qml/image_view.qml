@@ -101,5 +101,20 @@ Item{
         text: 'Remove occupied AOI'
         onClicked: imageView.remove_occupied_aoi()
     }
+    Button {
+        id: saveButton
+        anchors.top: removeOccupiedButton.bottom
+        text: 'Save'
+        onClicked: imageView.save_aois()
+    }
+    Button {
+        id: loadButton
+        anchors {
+            top: removeOccupiedButton.bottom
+            left: saveButton.right
+        }
+        text: 'Load'
+        onClicked: imageView.load_aois()
+    }
 
 }

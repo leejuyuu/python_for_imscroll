@@ -31,6 +31,8 @@ class MyImageView(pg.ImageView):
     remove_close_aoi = QtCore.Signal()
     remove_empty_aoi = QtCore.Signal()
     remove_occupied_aoi = QtCore.Signal()
+    load_aois = QtCore.Signal()
+    save_aois = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
@@ -57,6 +59,8 @@ class MyImageView(pg.ImageView):
         self.remove_close_aoi.connect(self.model.remove_close_aoi)
         self.remove_empty_aoi.connect(self.model.remove_empty_aoi)
         self.remove_occupied_aoi.connect(self.model.remove_occupied_aoi)
+        self.save_aois.connect(self.model.save_aois)
+        self.load_aois.connect(self.model.load_aois)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
@@ -108,6 +112,21 @@ class MyImageView(pg.ImageView):
             mousePoint = self.view_box.mapSceneToView(pos)
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
+
+def save_file_path_dialog() -> Path:
+    file_path, _ = QtWidgets.QFileDialog.getSaveFileName(caption='Save to file')
+    if file_path == '':
+        return None
+    file_path = Path(file_path)
+    return file_path
+
+
+def open_file_path_dialog() -> Path:
+    file_path, _ = QtWidgets.QFileDialog.getOpenFileName(caption='Select file to open')
+    if file_path == '':
+        return None
+    file_path = Path(file_path)
+    return file_path
 
 
 class Model(QtCore.QObject):
@@ -218,6 +237,18 @@ class Model(QtCore.QObject):
         ref_aois = self._pick_spots_wrapped()
         self.aois = self.aois.remove_aois_near_ref(ref_aois,
                                                    radius=dist_threshold)
+
+    def save_aois(self):
+        save_path = save_file_path_dialog()
+        if save_path is not None:
+            self.aois.to_npz(save_path)
+            self.aois.to_imscroll_aoiinfo2(save_path)
+
+    def load_aois(self):
+        load_path = open_file_path_dialog()
+        if load_path is not None:
+            self.aois = imp.Aois.from_npz(load_path)
+
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,
