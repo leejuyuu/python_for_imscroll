@@ -46,7 +46,7 @@ class MyImageView(pg.ImageView):
                                                QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
         self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
-        self.sigTimeChanged.connect(self.frame_changed, QtCore.Qt.UniqueConnection)
+        self.sigTimeChanged.connect(self.frame_changed_notify, QtCore.Qt.UniqueConnection)
         self.crossHairActive = False
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
