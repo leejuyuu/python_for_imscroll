@@ -191,12 +191,12 @@ class Model(QtCore.QObject):
     def _pick_spots_wrapped(self):
         params = self.pick_spots_param.params
         aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=1),
-                                   threshold=params[SPOT_BRIGHTNESS_STR],
-                                   noise_dia=params[NOISE_DIA_STR],
-                                   spot_dia=params[SPOT_DIA_STR],
-                                   frame=self.current_frame,
-                                   aoi_width=params[AOI_WIDTH_STR],
-                                   frame_avg=1)
+                              threshold=params[SPOT_BRIGHTNESS_STR],
+                              noise_dia=params[NOISE_DIA_STR],
+                              spot_dia=params[SPOT_DIA_STR],
+                              frame=self.current_frame,
+                              aoi_width=params[AOI_WIDTH_STR],
+                              frame_avg=1)
         return aois
 
     def pick_spots(self):
