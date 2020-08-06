@@ -129,6 +129,14 @@ def open_file_path_dialog() -> Path:
     return file_path
 
 
+def select_directory_dialog() -> Path:
+    dir_path = QtWidgets.QFileDialog.getExistingDirectory(caption='Select a directory')
+    if dir_path == '':
+        return None
+    dir_path = Path(dir_path)
+    return dir_path
+
+
 class Model(QtCore.QObject):
 
     aois_changed = QtCore.Signal()
@@ -358,13 +366,13 @@ class Window(QtWidgets.QWidget):
 
 
 def main():
-    path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/20200206_mapping/map/hwligroup00688/')
-    image_sequence = imp.ImageSequence(path)
 
     # Always start by initializing Qt (only once per application)
     app = QtWidgets.QApplication.instance()
     if app is None:
         app = QtWidgets.QApplication([])
+    path = select_directory_dialog()
+    image_sequence = imp.ImageSequence(path)
 
     window = Window()
     window.image_view.setSequence(image_sequence)
