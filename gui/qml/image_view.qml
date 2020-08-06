@@ -116,5 +116,20 @@ Item{
         text: 'Load'
         onClicked: imageView.load_aois()
     }
+    Button {
+        id: averageButton
+        anchors.top: saveButton.bottom
+        text: 'Average'
+        onClicked: imageView.average_current_frame()
+    }
+    Button {
+        id: resetButton
+        anchors {
+            top: saveButton.bottom
+            left: averageButton.right
+        }
+        text: 'Reset'
+        onClicked: imageView.reset()
+    }
 
 }

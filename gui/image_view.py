@@ -65,6 +65,7 @@ class MyImageView(pg.ImageView):
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
         image = image_sequence.get_whole_stack()
+        self.stack = image
         self.view_box.setLimits(xMin=0, xMax=image_sequence.width,
                                 yMin=0, yMax=image_sequence.height)
         self.setImage(image, axes={'t': 2, 'x': 1, 'y': 0})
@@ -112,6 +113,18 @@ class MyImageView(pg.ImageView):
             mousePoint = self.view_box.mapSceneToView(pos)
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
+
+    @QtCore.Slot()
+    def average_current_frame(self):
+        avg_image = self.model.get_current_frame_image(frame_avg=10)
+        self.setImage(avg_image, axes={'x': 1, 'y': 0})
+
+    @QtCore.Slot()
+    def reset(self):
+        current_frame = self.model.current_frame
+        self.setImage(self.stack, axes={'t': 2, 'x': 1, 'y': 0})
+        self.setCurrentIndex(current_frame)
+
 
 def save_file_path_dialog() -> Path:
     file_path, _ = QtWidgets.QFileDialog.getSaveFileName(caption='Save to file')
@@ -206,8 +219,8 @@ class Model(QtCore.QObject):
     def dummy_notify(self):
         pass
 
-    def get_current_frame_image(self):
-        return self.image_sequence.get_one_frame(self._current_frame)
+    def get_current_frame_image(self, frame_avg=1):
+        return self.image_sequence.get_averaged_image(self._current_frame, size=frame_avg)
 
     @QtCore.Slot()
     def gaussian_refine_aois(self):
