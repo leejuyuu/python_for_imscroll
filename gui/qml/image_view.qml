@@ -131,5 +131,9 @@ Item{
         text: 'Reset'
         onClicked: imageView.reset()
     }
+    Text {
+        anchors.top: averageButton.bottom
+        text: imageView.idx
+    }
 
 }

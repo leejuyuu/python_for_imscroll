@@ -33,6 +33,7 @@ class MyImageView(pg.ImageView):
     remove_occupied_aoi = QtCore.Signal()
     load_aois = QtCore.Signal()
     save_aois = QtCore.Signal()
+    frame_changed_notify = QtCore.Signal()
 
     def __init__(self):
         super().__init__()
@@ -45,6 +46,7 @@ class MyImageView(pg.ImageView):
                                                QtCore.Qt.UniqueConnection)
         self.model.aois_changed.connect(self.aois_view.update, QtCore.Qt.UniqueConnection)
         self.sigTimeChanged.connect(self.model.change_current_frame, QtCore.Qt.UniqueConnection)
+        self.sigTimeChanged.connect(self.frame_changed, QtCore.Qt.UniqueConnection)
         self.crossHairActive = False
         self.vLine = pg.InfiniteLine(angle=90, movable=False)
         self.hLine = pg.InfiniteLine(angle=0, movable=False)
@@ -124,6 +126,11 @@ class MyImageView(pg.ImageView):
         current_frame = self.model.current_frame
         self.setImage(self.stack, axes={'t': 2, 'x': 1, 'y': 0})
         self.setCurrentIndex(current_frame)
+
+    def _getCurrentIndex(self):
+        return self.currentIndex
+
+    idx = QtCore.Property(int, fget=_getCurrentIndex, notify=frame_changed_notify)
 
 
 def save_file_path_dialog() -> Path:
