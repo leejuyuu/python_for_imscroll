@@ -35,7 +35,9 @@ def find_state_intensity_and_std(channel_time_series):
         for state_label in range(1, int(number_of_states) + 1):
             state_viterbi_intensity = viterbi_intensity[viterbi_state_labels == state_label]
             state_unique_intensity = np.unique(state_viterbi_intensity)
-            if len(state_unique_intensity) != 1:
+            if len(state_unique_intensity) == 0:
+                continue
+            if len(state_unique_intensity) not in  (0, 1):
                 raise ValueError('State intensity is not unique.')
             state_raw_intensity = raw_intensity[viterbi_state_labels == state_label]
             intensity_std = np.std(state_raw_intensity)
