@@ -205,6 +205,15 @@ def import_interval_results(data):
     return data
 
 
+def deflate_viterbi_path(vit_state_label):
+    unique_element = np.unique(vit_state_label)
+    successive_int = np.arange(1, len(unique_element) + 1)
+    if np.any(unique_element != successive_int):
+        for i, label in enumerate(unique_element, start=1):
+            vit_state_label[vit_state_label == label] = i
+    return vit_state_label
+
+
 def import_viterbi_paths(data):
     data.attrs['datapath'] = Path(data.datapath)
     eb_file_path = data.datapath / (data.filestr + '_eb.dat')
@@ -216,7 +225,7 @@ def import_viterbi_paths(data):
         i_vit = np.zeros((len(data.AOI), n_frames, 2))
         for iAOI in range(0, len(data.AOI)):
             i_vit[iAOI, :, 0] = eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['x'].squeeze()
-            i_vit[iAOI, :, 1] = eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['z'].squeeze()
+            i_vit[iAOI, :, 1] = deflate_viterbi_path(eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['z'].squeeze())
         i_vit = np.expand_dims(i_vit, 3)
         i_viterbi_path = xr.DataArray(i_vit,
                                       dims=('AOI', 'time', 'state', 'channel'),
