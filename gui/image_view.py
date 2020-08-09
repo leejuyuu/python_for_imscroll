@@ -34,6 +34,7 @@ class MyImageView(pg.ImageView):
     load_aois = QtCore.Signal()
     save_aois = QtCore.Signal()
     frame_changed_notify = QtCore.Signal()
+    frame_average_changed = QtCore.Signal(int)
 
     def __init__(self):
         super().__init__()
@@ -63,6 +64,7 @@ class MyImageView(pg.ImageView):
         self.remove_occupied_aoi.connect(self.model.remove_occupied_aoi)
         self.save_aois.connect(self.model.save_aois)
         self.load_aois.connect(self.model.load_aois)
+        self.frame_average_changed.connect(self.model.update_frame_average)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
@@ -118,7 +120,8 @@ class MyImageView(pg.ImageView):
 
     @QtCore.Slot()
     def average_current_frame(self):
-        avg_image = self.model.get_current_frame_image(frame_avg=10)
+        self.frame_average_changed.emit(10)
+        avg_image = self.model.get_current_frame_image()
         self.setImage(avg_image, axes={'x': 1, 'y': 0})
 
     @QtCore.Slot()
@@ -126,6 +129,7 @@ class MyImageView(pg.ImageView):
         current_frame = self.model.current_frame
         self.setImage(self.stack, axes={'t': 2, 'x': 1, 'y': 0})
         self.setCurrentIndex(current_frame)
+        self.frame_average_changed.emit(1)
 
     def _getCurrentIndex(self):
         return self.currentIndex
@@ -167,6 +171,7 @@ class Model(QtCore.QObject):
         self._current_frame = 0
         self.pick_spots_param = PickSpotsParam()
         self.aois_edit_state = 'idle'
+        self.frame_average = 1
 
     @property
     def aois(self):
@@ -190,7 +195,8 @@ class Model(QtCore.QObject):
 
     def _pick_spots_wrapped(self):
         params = self.pick_spots_param.params
-        aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=1),
+        print(self.frame_average)
+        aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=self.frame_average),
                               threshold=params[SPOT_BRIGHTNESS_STR],
                               noise_dia=params[NOISE_DIA_STR],
                               spot_dia=params[SPOT_DIA_STR],
@@ -226,8 +232,8 @@ class Model(QtCore.QObject):
     def dummy_notify(self):
         pass
 
-    def get_current_frame_image(self, frame_avg=1):
-        return self.image_sequence.get_averaged_image(self._current_frame, size=frame_avg)
+    def get_current_frame_image(self):
+        return self.image_sequence.get_averaged_image(self._current_frame, size=self.frame_average)
 
     @QtCore.Slot()
     def gaussian_refine_aois(self):
@@ -276,6 +282,10 @@ class Model(QtCore.QObject):
         load_path = open_file_path_dialog()
         if load_path is not None:
             self.aois = imp.Aois.from_npz(load_path)
+
+    @QtCore.Slot(int)
+    def update_frame_average(self, value: int):
+        self.frame_average = value
 
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
