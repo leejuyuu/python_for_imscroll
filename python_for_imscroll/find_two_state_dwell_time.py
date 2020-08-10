@@ -116,22 +116,46 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
         save_fig_path = datapath / (i_sheet + '_' + '_first_dwellr' + '.' + im_format)
         call_r_survival(df, save_fig_path, stat_counts)
 
+def log_sum_exp(arr):
+    x_max = arr.max(axis=0)
+    result = x_max + np.log(np.sum(np.exp(arr - x_max), axis=0))
+    return result
+
+def sum_log_f(log_t, log_k1, log_k2, log_A):
+    term1 = log_A + log_k1 - np.exp(log_k1 + log_t)
+    term2 = log1mexp(-log_A) + log_k2 - np.exp(log_k2 + log_t)
+    log_f_arr = log_sum_exp(np.stack((term1, term2), axis=0))
+    return log_f_arr.sum()
+
+
+def log_S(log_t, log_k1, log_k2, log_A):
+    print(log_A)
+    print(np.exp(log_A), np.exp(log1mexp(-log_A)))
+    term1 = log_A - np.exp(log_k1 + log_t)
+    term2 = log1mexp(-log_A) - np.exp(log_k2 + log_t)
+    log_S_arr = log_sum_exp(np.stack((term1, term2), axis=0))
+    return log_S_arr
+
+def log1mexp(x):
+    if x > np.log(2):
+        result = np.log1p(-np.exp(-x))
+    else:
+        result = np.log(-np.expm1(-x))
+    return result
+
+
 def fit_biexponential(data):
-    def n_log_lik(param):
-        S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
-        f = lambda t, k1, k2, A: A*k1*np.exp(-k1*t) + (1-A)*k2*np.exp(-k2*t)
+    def n_log_lik(log_param):
         observed = data.time[data.status==1].to_numpy()
         right_censored = data.time[data.status==0].to_numpy()
         left_censored = data.time[data.status==2].to_numpy()
-        # if any(f(observed, *param) == 0) or any(S(right_censored, *param) == 0) or any(1-S(right_censored, *param) == 0):
-        #     breakpoint()
-        return -(np.sum(np.log(f(observed, *param)))
-                 + np.sum(np.log(S(right_censored, *param)))
-                 + np.sum(np.log(1-S(left_censored, *param))))
+        return -(sum_log_f(np.log(observed), *log_param)
+                 + np.sum(log_S(np.log(right_censored), *log_param))
+                 + np.sum(np.log(1-np.exp(log_S(np.log(left_censored), *log_param)))))
     k_guess = 1/np.mean(data.time)
-    result = optimize.minimize(n_log_lik, [k_guess, k_guess/1.5, 0.5],
-                                  bounds=((1e-7, 1), (1e-7, 1), (0, 1)),
-                                  method='L-BFGS-B')
+    result = optimize.minimize(n_log_lik, [np.log(k_guess), np.log(k_guess/1.5), np.log(0.5)],
+                               bounds=((np.log(1e-7), 0), (np.log(1e-7), 0), (-100, -1e-16)),
+                               method='L-BFGS-B')
     return result
 
 
@@ -155,7 +179,7 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
 
 
     result = fit_biexponential(df)
-    param = result.x
+    param = np.exp(result.x)
     print(1/param[:2], param[2])
 
     S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
