@@ -45,7 +45,7 @@ def find_two_state_dwell_time(parameter_file_path: Path, sheet_list: List[str]):
                                                                     datapath,
                                                                     i_sheet,
                                                                     state_category)
-        excluded_aois = (4,9,12,14,40,58,74,79,106,120,124,)
+        excluded_aois = (17,22,25,31,35,38,40,41,45,46,78,80,107,108,109,112,124,126,)
         intervals = interval_list[0]
         selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
         interval_list[0] = intervals.sel(AOI=selected_aois)
@@ -71,7 +71,7 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
     datapath = imscrollIO.def_data_path()
     state_category = '1'
     im_format = 'svg'
-    excluded_aois = (35,36,37,38,52,53,64,65,67,75,77,79,81,87,89,98,107,115,116,118,122,127,131,145,147,149,150,152,153,154,156,158,159,)
+    excluded_aois = (6,9,17,19,22,44,52,69,70,74,107,116,117,)
     for i_sheet in sheet_list:
         time_offset = read_time_offset(parameter_file_path, i_sheet)
         zero_state_interval_list = read_interval_data(parameter_file_path,
@@ -129,8 +129,6 @@ def sum_log_f(log_t, log_k1, log_k2, log_A):
 
 
 def log_S(log_t, log_k1, log_k2, log_A):
-    print(log_A)
-    print(np.exp(log_A), np.exp(log1mexp(-log_A)))
     term1 = log_A - np.exp(log_k1 + log_t)
     term2 = log1mexp(-log_A) - np.exp(log_k2 + log_t)
     log_S_arr = log_sum_exp(np.stack((term1, term2), axis=0))
@@ -291,8 +289,8 @@ def main():
     """main function"""
     xlsx_parameter_file_path = imscrollIO.get_xlsx_parameter_file_path()
     sheet_list = imscrollIO.input_sheets_for_analysis()
-    # find_two_state_dwell_time(xlsx_parameter_file_path, sheet_list)
-    find_first_dwell_time(xlsx_parameter_file_path, sheet_list)
+    find_two_state_dwell_time(xlsx_parameter_file_path, sheet_list)
+    # find_first_dwell_time(xlsx_parameter_file_path, sheet_list)
 
 
 if __name__ == '__main__':
