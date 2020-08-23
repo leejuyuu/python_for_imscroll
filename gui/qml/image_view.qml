@@ -116,24 +116,19 @@ Item{
         text: 'Load'
         onClicked: imageView.load_aois()
     }
-    Button {
-        id: averageButton
-        anchors.top: saveButton.bottom
-        text: 'Average'
-        onClicked: imageView.average_current_frame()
-    }
-    Button {
-        id: resetButton
-        anchors {
-            top: saveButton.bottom
-            left: averageButton.right
-        }
-        text: 'Reset'
-        onClicked: imageView.reset()
-    }
     Text {
-        anchors.top: averageButton.bottom
+        id: frameNum
+        anchors.top: saveButton.bottom
         text: imageView.idx
+    }
+    MySpinBox {
+        id: frameAverage
+        anchors {
+            top: frameNum.bottom
+
+        }
+        value: dataModel.frameAverage
+        onValueModified: {dataModel.frameAverage = value}
     }
 
 }

@@ -65,15 +65,75 @@ class MyImageView(pg.ImageView):
         self.save_aois.connect(self.model.save_aois)
         self.load_aois.connect(self.model.load_aois)
         self.frame_average_changed.connect(self.model.update_frame_average)
+        self.model.frame_average_changed.connect(self.onFrameAverageChanged)
+
+
+    def onFrameAverageChanged(self):
+        self.tVals = np.arange(self.imageSequence.length - self.model.frame_average + 1)
+        self.frameTicks.setXVals(self.tVals)
+        if len(self.tVals) > 1:
+            start = self.tVals.min()
+            stop = self.tVals.max() + abs(self.tVals[-1] - self.tVals[0]) * 0.02
+        elif len(self.tVals) == 1:
+            start = self.tVals[0] - 0.5
+            stop = self.tVals[0] + 0.5
+        else:
+            start = 0
+            stop = 1
+        for s in [self.timeLine, self.normRgn]:
+            s.setBounds([start, stop])
+        self.roiClicked()
+        self.updateImage()
+
+    def updateImage(self, autoHistogramRange=True):
+        """Override the original"""
+        ## Redraw image on screen
+        if self.image is None:
+            return
+
+        self.image = self.imageSequence.get_averaged_image(self.currentIndex, size=self.model.frame_average)
+        image = self.normalize(self.image)
+        self.imageDisp = image
+        self._imageLevels = self.quickMinMax(self.imageDisp)
+        self.levelMin = min([level[0] for level in self._imageLevels])
+        self.levelMax = max([level[1] for level in self._imageLevels])
+
+        if autoHistogramRange:
+            self.ui.histogram.setHistogramRange(self.levelMin, self.levelMax)
+
+        self.ui.roiPlot.show()
+
+        self.imageItem.updateImage(image.T)
 
     def setSequence(self, image_sequence: imp.ImageSequence):
         self.imageSequence = image_sequence
-        image = image_sequence.get_whole_stack()
-        self.stack = image
+        image = self.imageSequence.get_averaged_image(self.currentIndex, size=self.model.frame_average)
         self.view_box.setLimits(xMin=0, xMax=image_sequence.width,
                                 yMin=0, yMax=image_sequence.height)
-        self.setImage(image, axes={'t': 2, 'x': 1, 'y': 0})
-        self.view_box.setRange(yRange=(0, image_sequence.height))
+        self.setImage(image, axes={'x': 1, 'y': 0})
+        self.axes = {'t': -1, 'x': 1, 'y': 0, 'c': None}
+        self.tVals = np.arange(self.imageSequence.length)
+
+        # Set ticks
+        self.currentIndex = 0
+        self.frameTicks.setXVals(self.tVals)
+        self.timeLine.setValue(0)
+        if len(self.tVals) > 1:
+            start = self.tVals.min()
+            stop = self.tVals.max() + abs(self.tVals[-1] - self.tVals[0]) * 0.02
+            stop = self.tVals.max()
+        elif len(self.tVals) == 1:
+            start = self.tVals[0] - 0.5
+            stop = self.tVals[0] + 0.5
+        else:
+            start = 0
+            stop = 1
+        for s in [self.timeLine, self.normRgn]:
+            s.setBounds([start, stop])
+
+        self.updateImage()
+        self.autoRange()
+        self.roiClicked()
 
     @QtCore.Slot()
     def onPickButtonPressed(self):
@@ -118,19 +178,6 @@ class MyImageView(pg.ImageView):
             self.vLine.setPos(mousePoint.x())
             self.hLine.setPos(mousePoint.y())
 
-    @QtCore.Slot()
-    def average_current_frame(self):
-        self.frame_average_changed.emit(10)
-        avg_image = self.model.get_current_frame_image()
-        self.setImage(avg_image, axes={'x': 1, 'y': 0})
-
-    @QtCore.Slot()
-    def reset(self):
-        current_frame = self.model.current_frame
-        self.setImage(self.stack, axes={'t': 2, 'x': 1, 'y': 0})
-        self.setCurrentIndex(current_frame)
-        self.frame_average_changed.emit(1)
-
     def _getCurrentIndex(self):
         return self.currentIndex
 
@@ -164,6 +211,7 @@ def select_directory_dialog() -> Path:
 class Model(QtCore.QObject):
 
     aois_changed = QtCore.Signal()
+    frame_average_changed = QtCore.Signal()
     def __init__(self):
         super().__init__()
         self._aois: imp.Aois = None
@@ -195,7 +243,6 @@ class Model(QtCore.QObject):
 
     def _pick_spots_wrapped(self):
         params = self.pick_spots_param.params
-        print(self.frame_average)
         aois = imp.pick_spots(self.image_sequence.get_averaged_image(start=self._current_frame, size=self.frame_average),
                               threshold=params[SPOT_BRIGHTNESS_STR],
                               noise_dia=params[NOISE_DIA_STR],
@@ -287,10 +334,20 @@ class Model(QtCore.QObject):
     def update_frame_average(self, value: int):
         self.frame_average = value
 
+    def _get_frame_average(self):
+        return self.frame_average
+
+    def _set_frame_average(self, value):
+        self.frame_average = value
+        self.frame_average_changed.emit()
+
 
     pickSpotsParam = QtCore.Property(QtCore.QObject,
                                      fget=_read_pick_spots_param,
                                      notify=dummy_notify)
+    frameAverage = QtCore.Property(int, fget=_get_frame_average,
+                                   fset=_set_frame_average,
+                                   notify=dummy_notify)
 
 class PickSpotsParam(QtCore.QAbstractListModel):
     def __init__(self):
