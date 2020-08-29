@@ -29,6 +29,7 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 from matplotlib import pyplot as plt
 from lifelines import KaplanMeierFitter, ExponentialFitter
+from scipy import optimize
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
 
@@ -44,6 +45,10 @@ def find_two_state_dwell_time(parameter_file_path: Path, sheet_list: List[str]):
                                                                     datapath,
                                                                     i_sheet,
                                                                     state_category)
+        excluded_aois = (4,9,12,14,40,58,74,79,106,120,124,)
+        intervals = interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        interval_list[0] = intervals.sel(AOI=selected_aois)
         for i, item in enumerate(state_list):
             dwells = binding_kinetics.extract_dwell_time(interval_list, i)
             if len(dwells.duration) == 0:
@@ -66,6 +71,7 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
     datapath = imscrollIO.def_data_path()
     state_category = '1'
     im_format = 'svg'
+    excluded_aois = (35,36,37,38,52,53,64,65,67,75,77,79,81,87,89,98,107,115,116,118,122,127,131,145,147,149,150,152,153,154,156,158,159,)
     for i_sheet in sheet_list:
         time_offset = read_time_offset(parameter_file_path, i_sheet)
         zero_state_interval_list = read_interval_data(parameter_file_path,
@@ -73,16 +79,23 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
                                                       i_sheet,
                                                       '0',
                                                       first_only=True)[0]
+        intervals = zero_state_interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        zero_state_interval_list[0] = intervals.sel(AOI=selected_aois)
         n_right_censored = len(zero_state_interval_list[0].AOI)
         interval_list, n_good_traces, max_time = read_interval_data(parameter_file_path,
                                                                     datapath,
                                                                     i_sheet,
                                                                     state_category,
                                                                     first_only=True)
+        intervals = interval_list[0]
+        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
+        interval_list[0] = intervals.sel(AOI=selected_aois)
+
         dwells = binding_kinetics.extract_first_binding_time(interval_list)
         dwells['duration'] += time_offset
         max_time += time_offset
-        interval_censor_table = np.zeros((len(dwells.duration) + n_right_censored,
+        interval_censor_table = np.zeros((len(dwells.duration)+n_right_censored,
                                           2))
 
         interval_censor_table[0:len(dwells.duration), 0] = dwells.duration.values
@@ -103,6 +116,48 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
         save_fig_path = datapath / (i_sheet + '_' + '_first_dwellr' + '.' + im_format)
         call_r_survival(df, save_fig_path, stat_counts)
 
+def log_sum_exp(arr):
+    x_max = arr.max(axis=0)
+    result = x_max + np.log(np.sum(np.exp(arr - x_max), axis=0))
+    return result
+
+def sum_log_f(log_t, log_k1, log_k2, log_A):
+    term1 = log_A + log_k1 - np.exp(log_k1 + log_t)
+    term2 = log1mexp(-log_A) + log_k2 - np.exp(log_k2 + log_t)
+    log_f_arr = log_sum_exp(np.stack((term1, term2), axis=0))
+    return log_f_arr.sum()
+
+
+def log_S(log_t, log_k1, log_k2, log_A):
+    print(log_A)
+    print(np.exp(log_A), np.exp(log1mexp(-log_A)))
+    term1 = log_A - np.exp(log_k1 + log_t)
+    term2 = log1mexp(-log_A) - np.exp(log_k2 + log_t)
+    log_S_arr = log_sum_exp(np.stack((term1, term2), axis=0))
+    return log_S_arr
+
+def log1mexp(x):
+    if x > np.log(2):
+        result = np.log1p(-np.exp(-x))
+    else:
+        result = np.log(-np.expm1(-x))
+    return result
+
+
+def fit_biexponential(data):
+    def n_log_lik(log_param):
+        observed = data.time[data.status==1].to_numpy()
+        right_censored = data.time[data.status==0].to_numpy()
+        left_censored = data.time[data.status==2].to_numpy()
+        return -(sum_log_f(np.log(observed), *log_param)
+                 + np.sum(log_S(np.log(right_censored), *log_param))
+                 + np.sum(np.log(1-np.exp(log_S(np.log(left_censored), *log_param)))))
+    k_guess = 1/np.mean(data.time)
+    result = optimize.minimize(n_log_lik, [np.log(k_guess), np.log(k_guess/1.5), np.log(0.5)],
+                               bounds=((np.log(1e-7), 0), (np.log(1e-7), 0), (-100, -1e-16)),
+                               method='L-BFGS-B')
+    return result
+
 
 def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, int, int]):
     rpy2.robjects.pandas2ri.activate()
@@ -121,10 +176,19 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
     robjects.r('exreg <- survreg(surv~1, data={}, dist="exponential")'.format(r_from_pd_df.r_repr()))
     intercept = robjects.r('exreg["coefficients"]')[0].item()
     log_var = robjects.r('exreg["var"]')[0].item()
+
+
+    result = fit_biexponential(df)
+    param = np.exp(result.x)
+    print(1/param[:2], param[2])
+
+    S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
     k = np.exp(-intercept)
     tau_ci = np.exp(intercept + np.array([-1, 1])*log_var)
-    x = np.linspace(0, time[-1], time[-1]*10)
+    x = np.linspace(0, time[-1], int(round(time[-1]*10)))
     y = np.exp(-k*x)
+    y = S(x, *param)
+
 
     plt.step(time, surv, where='post')
     plt.plot(x, y)
@@ -152,9 +216,11 @@ def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, i
         surv_data = np.stack([time, surv, upper_ci, lower_ci])
         group_survival_curve.create_dataset('data', surv_data.shape,
                                             'f', surv_data)
-        group_exp_model = f.create_group('exp_model')
-        group_exp_model.create_dataset('k', (1,), 'f', k)
-        group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
+        # group_exp_model = f.create_group('exp_model')
+        # group_exp_model.create_dataset('k', (1,), 'f', k)
+        # group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
+        group_exp_model = f.create_group('bi_exp_model')
+        group_exp_model.create_dataset('param', (3,), 'f', param)
 
 
 def plot_survival_curve(kmf: KaplanMeierFitter,
@@ -177,10 +243,12 @@ def plot_survival_curve(kmf: KaplanMeierFitter,
     plt.xlim(left=0)
     if x_right_lim is not None:
         plt.xlim(right=x_right_lim)
+    plt.ylim((0, 1))
 
     plt.rcParams['svg.fonttype'] = 'none'
     plt.savefig(save_path, format='svg', Transparent=True,
                 dpi=300, bbox_inches='tight')
+
     plt.close()
 
 

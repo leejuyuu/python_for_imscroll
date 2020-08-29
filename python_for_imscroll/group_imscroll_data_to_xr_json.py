@@ -39,8 +39,8 @@ def group_imscroll_data_to_xr_json(xlspath: Path, sheet_list: List[str],
     for i_sheet in sheet_list:
         dfs = pd.read_excel(xlspath, sheet_name=i_sheet)
 
-        for filestr in dfs.filename:
-            data = imscrollIO.initialize_data_from_intensity_traces(datapath, filestr)
+        for filestr, frame_start, frame_end in zip(dfs.filename, dfs['framestart'], dfs['frame end']):
+            data = imscrollIO.initialize_data_from_intensity_traces(datapath, filestr, (frame_start - 1, frame_end))
             data = imscrollIO.import_interval_results(data)
             try:
                 data = imscrollIO.import_viterbi_paths(data)

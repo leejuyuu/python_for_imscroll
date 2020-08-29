@@ -35,7 +35,9 @@ def find_state_intensity_and_std(channel_time_series):
         for state_label in range(1, int(number_of_states) + 1):
             state_viterbi_intensity = viterbi_intensity[viterbi_state_labels == state_label]
             state_unique_intensity = np.unique(state_viterbi_intensity)
-            if len(state_unique_intensity) != 1:
+            if len(state_unique_intensity) == 0:
+                continue
+            if len(state_unique_intensity) not in  (0, 1):
                 raise ValueError('State intensity is not unique.')
             state_raw_intensity = raw_intensity[viterbi_state_labels == state_label]
             intensity_std = np.std(state_raw_intensity)
@@ -117,6 +119,13 @@ def list_multiple_tethers(channel_state_info) -> tuple:
     bad_tethers.sort()
     bad_tethers = tuple(bad_tethers)
     return bad_tethers
+
+
+def list_none_ctl_positions(channel_state_info) -> tuple:
+    cond = np.logical_or(channel_state_info.nStates != 1,
+                         np.logical_not(channel_state_info.bool_lowest_state_equal_to_zero))
+    aoi_list = channel_state_info.AOI[cond].values.tolist()
+    return tuple(aoi_list)
 
 
 def split_data_set_by_specifying_aoi_subset(data, aoi_subset: set):
@@ -245,11 +254,11 @@ def extract_dwell_time(intervals_list, state):
                 np.logical_not(np.isnan(i_AOI_intervals.duration)),
                 drop=True)
 
-            valid_intervals = valid_intervals.isel(interval_number=slice(1, None))
+            # valid_intervals = valid_intervals.isel(interval_number=slice(1, None))
             if len(valid_intervals.duration) != 0:
                 valid_intervals = valid_intervals.assign({'event_observed' :('interval_number', np.ones(len(valid_intervals.interval_number)))})
 
-                valid_intervals['event_observed'][-1] = 0
+                valid_intervals['event_observed'][[0, -1]] = 0
                 i_dwell = valid_intervals[['duration', 'event_observed']].where(valid_intervals.state_number == state,
                                                                                 drop=True)
 

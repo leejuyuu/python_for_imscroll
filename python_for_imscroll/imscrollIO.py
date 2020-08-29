@@ -98,13 +98,13 @@ def import_channels_info(datapath, filestr):
     return channels_info_dict
 
 
-def import_time_stamps(channels_info):
+def import_time_stamps(channels_info, start_end):
     channels_time_stamps = dict(channels_info)
     timezeros = []
     for channel, image_path in channels_info.items():
         header_file_path = image_path / 'header.mat'
         header_file = sio.loadmat(header_file_path)
-        time_stamps = header_file['vid']['ttb'][0, 0].squeeze()
+        time_stamps = header_file['vid']['ttb'][0, 0].squeeze()[slice(*start_end)]
         channels_time_stamps[channel] = time_stamps
         timezeros.append(time_stamps[0])
     starttime = min(timezeros)
@@ -114,9 +114,9 @@ def import_time_stamps(channels_info):
     return channels_time_stamps
 
 
-def initialize_data_from_intensity_traces(datapath, filestr):
+def initialize_data_from_intensity_traces(datapath, filestr, start_end):
     channels_info = import_channels_info(datapath, filestr)
-    channels_time_stamps = import_time_stamps(channels_info)
+    channels_time_stamps = import_time_stamps(channels_info, start_end)
 
     intensity_file_path = datapath / (filestr + '_traces.dat')
     traces_file = sio.loadmat(intensity_file_path)
@@ -205,6 +205,15 @@ def import_interval_results(data):
     return data
 
 
+def deflate_viterbi_path(vit_state_label):
+    unique_element = np.unique(vit_state_label)
+    successive_int = np.arange(1, len(unique_element) + 1)
+    if np.any(unique_element != successive_int):
+        for i, label in enumerate(unique_element, start=1):
+            vit_state_label[vit_state_label == label] = i
+    return vit_state_label
+
+
 def import_viterbi_paths(data):
     data.attrs['datapath'] = Path(data.datapath)
     eb_file_path = data.datapath / (data.filestr + '_eb.dat')
@@ -216,7 +225,7 @@ def import_viterbi_paths(data):
         i_vit = np.zeros((len(data.AOI), n_frames, 2))
         for iAOI in range(0, len(data.AOI)):
             i_vit[iAOI, :, 0] = eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['x'].squeeze()
-            i_vit[iAOI, :, 1] = eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['z'].squeeze()
+            i_vit[iAOI, :, 1] = deflate_viterbi_path(eb_file[i_channel][0, 0]['Vit'][0, 0][0, iAOI]['z'].squeeze())
         i_vit = np.expand_dims(i_vit, 3)
         i_viterbi_path = xr.DataArray(i_vit,
                                       dims=('AOI', 'time', 'state', 'channel'),
