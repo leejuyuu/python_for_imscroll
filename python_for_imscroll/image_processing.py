@@ -200,17 +200,22 @@ def pick_spots(image, threshold=50, noise_dia=1, spot_dia=5, frame=0, aoi_width=
 
 
 class Aois():
-    def __init__(self, coords: np.ndarray, frame: int, frame_avg: int = 1, width: int = 5):
+    def __init__(self, coords: np.ndarray, frame: int, frame_avg: int = 1, width: int = 5, channel=None):
         self._frame_avg = frame_avg
         self._frame = frame
         self.width = width
         self._coords = coords
+        self._channel = channel
 
     def get_all_x(self):
         return self._coords[:, 0]
 
     def get_all_y(self):
         return self._coords[:, 1]
+
+    @property
+    def channel(self):
+        return self._channel
 
     @property
     def frame(self):
@@ -245,7 +250,8 @@ class Aois():
         new_aois = Aois(self._coords[is_not_close, :],
                         frame=self.frame,
                         frame_avg=self.frame_avg,
-                        width=self.width)
+                        width=self.width,
+                        channel=self.channel)
         return new_aois
 
     def is_in_range_of(self, ref_aois: 'Aois', radius: Union[int, float]):
@@ -261,7 +267,8 @@ class Aois():
         new_aois = Aois(self._coords[np.logical_not(is_in_range_of_ref), :],
                         frame=self.frame,
                         frame_avg=self.frame_avg,
-                        width=self.width)
+                        width=self.width,
+                        channel=self.channel)
         return new_aois
 
     def remove_aois_far_from_ref(self, ref_aois: 'Aois', radius: Union[int, float]) -> 'Aois':
@@ -269,7 +276,8 @@ class Aois():
         new_aois = Aois(self._coords[is_in_range_of_ref, :],
                         frame=self.frame,
                         frame_avg=self.frame_avg,
-                        width=self.width)
+                        width=self.width,
+                        channel=self.channel)
         return new_aois
 
     def _get_params(self):
@@ -309,7 +317,8 @@ class Aois():
         new_aois = Aois(fit_result[:, 1:3],
                         frame=self.frame,
                         frame_avg=self.frame_avg,
-                        width=self.width)
+                        width=self.width,
+                        channel=self.channel)
         return new_aois
 
     def __add__(self, other):
@@ -317,7 +326,8 @@ class Aois():
             new_aois = Aois(np.concatenate((self._coords, np.array(other)[np.newaxis]), axis=0),
                             frame=self.frame,
                             frame_avg=self.frame_avg,
-                            width=self.width)
+                            width=self.width,
+                            channel=self.channel)
             return new_aois
         raise TypeError('Aois class addition only accepts tuples with len == 2')
 
@@ -329,7 +339,8 @@ class Aois():
         new_aois = Aois(new_coords,
                         frame=self.frame,
                         frame_avg=self.frame_avg,
-                        width=self.width)
+                        width=self.width,
+                        channel=self.channel)
         return new_aois
 
     def to_npz(self, path):
@@ -340,7 +351,7 @@ class Aois():
         formats = ['U10', int]
         dtype = dict(names=names, formats=formats)
         params = np.fromiter(params.items(), dtype=dtype, count=len(params))
-        np.savez(path, params=params, coords=self._coords)
+        np.savez(path, params=params, coords=self._coords, channel=np.array(self.channel, dtype='U5'))
 
     def to_imscroll_aoiinfo2(self, path):
         aoiinfo = np.zeros((len(self), 6))
@@ -355,10 +366,13 @@ class Aois():
     @classmethod
     def from_npz(cls, path):
         npz_file = np.load(path, allow_pickle=False)
+        channel = str(npz_file['channel'])
+        if channel == 'None':
+            channel = None
         params_arr = npz_file['params']
         params = {row['key']: row['value'] for row in params_arr}
         coords = npz_file['coords']
-        aois = cls(coords, **params)
+        aois = cls(coords, channel=channel, **params)
         return aois
 
 

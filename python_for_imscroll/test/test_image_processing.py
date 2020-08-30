@@ -331,6 +331,7 @@ def test_remove_aoi_nearest_to_ref():
     assert new_aois.width == aois.width
     assert new_aois.frame == aois.frame
     assert new_aois.frame_avg == aois.frame_avg
+    assert new_aois.channel == aois.channel
     np.testing.assert_equal(new_aois._coords, arr[1:, :])
 
 def test_save_load_aois():
@@ -350,4 +351,5 @@ def test_save_load_aois():
     assert new_aois.width == aois.width
     assert new_aois.frame == aois.frame
     assert new_aois.frame_avg == aois.frame_avg
+    assert new_aois.channel == aois.channel
     np.testing.assert_equal(new_aois._coords, arr)
