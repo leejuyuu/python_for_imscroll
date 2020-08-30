@@ -3,6 +3,7 @@ lifelines
 matplotlib
 numpy
 odfpy
+openpyxl
 pandas
 pyqtgraph
 PySide2
@@ -12,4 +13,3 @@ scipy
 seaborn
 skimage
 xarray
-xlrd

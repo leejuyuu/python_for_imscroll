@@ -30,7 +30,7 @@ from rpy2.robjects.conversion import localconverter
 from matplotlib import pyplot as plt
 from lifelines import KaplanMeierFitter, ExponentialFitter
 from scipy import optimize
-from python_for_imscroll import imscrollIO
+from python_for_imscroll import imscrollIO, utils
 from python_for_imscroll import binding_kinetics
 
 
@@ -253,7 +253,7 @@ def plot_survival_curve(kmf: KaplanMeierFitter,
 
 
 def read_time_offset(parameter_file_path: Path, sheet: str):
-    dfs = pd.read_excel(parameter_file_path, sheet_name=sheet)
+    dfs = utils.read_excel(parameter_file_path, sheet_name=sheet)
     return dfs['time offset'][0]
 
 
@@ -262,7 +262,7 @@ def read_interval_data(parameter_file_path: Path,
                        sheet: str,
                        state_category: str,
                        first_only: bool = False):
-    dfs = pd.read_excel(parameter_file_path, sheet_name=sheet)
+    dfs = utils.read_excel(parameter_file_path, sheet_name=sheet)
     if first_only:
         n_files = 1
     else:

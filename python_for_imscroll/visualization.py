@@ -24,6 +24,7 @@ import xarray as xr
 import numpy as np
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
+from python_for_imscroll import utils
 
 
 def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
@@ -66,7 +67,7 @@ def main():
     """Plot traces from every molecule in the dataset and save them as png files."""
     xlspath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20191106//20191106parameterFile.xlsx')
     sheet = 'L1_03'
-    dfs = pd.read_excel(xlspath, sheet_name=sheet)
+    dfs = utils.read_excel(xlspath, sheet_name=sheet)
     datapath = imscrollIO.def_data_path()
     im_format = 'png'
     nFiles = dfs.shape[0]

@@ -20,7 +20,7 @@
 from typing import List
 from pathlib import Path
 import pandas as pd
-from python_for_imscroll import imscrollIO
+from python_for_imscroll import imscrollIO, utils
 from python_for_imscroll import binding_kinetics as bk
 
 
@@ -36,7 +36,7 @@ def categorize_binding_traces(parameter_file_path: Path, sheet_list: List[str], 
     if datapath is None:
         datapath = imscrollIO.def_data_path()
     for i_sheet in sheet_list:
-        dfs = pd.read_excel(parameter_file_path, sheet_name=i_sheet)
+        dfs = utils.read_excel(parameter_file_path, sheet_name=i_sheet)
         for filestr in dfs.filename:
             is_ctl_file = filestr[-3:] == 'ctl'
             AOI_categories = {}

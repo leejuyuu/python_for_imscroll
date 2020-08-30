@@ -20,6 +20,7 @@ import numpy as np
 import pandas as pd
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
+from python_for_imscroll import utils
 
 
 def exclude_inintial_no_binding_aois(intervals):
@@ -43,7 +44,7 @@ def main():
     obs_off_str = ['obs', 'off']
     im_format = 'svg'
     for i_sheet in sheet_list:
-        dfs = pd.read_excel(xlspath, sheet_name=i_sheet)
+        dfs = utils.read_excel(xlspath, sheet_name=i_sheet)
         nFiles = dfs.shape[0]
         interval_list = []
         total_number = 0
