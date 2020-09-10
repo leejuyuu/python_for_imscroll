@@ -2,6 +2,7 @@ from pathlib import Path
 import math
 from typing import Union, Tuple
 import scipy.io as sio
+import scipy.interpolate
 import scipy.ndimage
 import scipy.optimize
 import numpy as np
@@ -374,6 +375,26 @@ class Aois():
         coords = npz_file['coords']
         aois = cls(coords, channel=channel, **params)
         return aois
+
+    def get_interp2d_grid(self):
+        if len(self) == 1:
+            offset = self.width/2 - 0.5
+            x_start, y_start = self._coords - offset
+            x_end, y_end = self._coords - offset + self.width
+            return np.ogrid[y_start:y_end, x_start:x_end]
+        raise ValueError('Wrong AOI length')
+
+    def get_intensity(self, image):
+        if len(self) == 1:
+            grid = self.get_interp2d_grid()
+            grid = (arr.squeeze() for arr in grid)
+            y_max, x_max = image.shape
+            f = scipy.interpolate.interp2d(*np.ogrid[:y_max, :x_max], image, fill_value=np.nan)
+            interpolated_image = f(*grid)
+            intensity = np.sum(interpolated_image)
+            return intensity
+        raise ValueError('Wrong AOI length')
+
 
 
 def symmetric_2d_gaussian(xy, A, x0, y0, sigma, h):

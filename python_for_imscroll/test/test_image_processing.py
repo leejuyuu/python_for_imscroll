@@ -353,3 +353,38 @@ def test_save_load_aois():
     assert new_aois.frame_avg == aois.frame_avg
     assert new_aois.channel == aois.channel
     np.testing.assert_equal(new_aois._coords, arr)
+
+
+def test_get_aoi_intensity():
+    # Should calculate the correct intensity when the center move gradually out
+    # of from the original spot.
+    arr = np.full((5, 2), 3, dtype='f')
+    arr[:, 0] += np.arange(0, 1, 0.2)
+    aois = imp.Aois(arr, 0)
+
+    image = np.zeros((7, 7))
+    image[1:-1, 1:-1] = 1
+    for i, aoi in enumerate(aois.iter_objects()):
+        intensity = aoi.get_intensity(image)
+        np.testing.assert_allclose(intensity, 25 - i)
+
+    # Should be fine at all four corners
+    arr = np.array([[2, 2],
+                    [4, 2],
+                    [4, 4],
+                    [2, 4]])
+    aois = imp.Aois(arr, 0)
+    for i, aoi in enumerate(aois.iter_objects()):
+        intensity = aoi.get_intensity(image)
+        np.testing.assert_allclose(intensity, 16)
+
+    # Should return NaN if the AOI boundary get outside the image boundary
+    arr = np.array([[2-0.0001, 2],
+                    [4+0.0001, 2],
+                    [4, 2-0.0001],
+                    [4, 4+0.0001],
+                    [2, 4+0.0001]])
+    aois = imp.Aois(arr, 0)
+    for i, aoi in enumerate(aois.iter_objects()):
+        intensity = aoi.get_intensity(image)
+        assert np.isnan(intensity)
