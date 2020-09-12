@@ -291,14 +291,18 @@ class Aois():
                        for i in range(len(self)))
         return gen_objects
 
-    def get_subimage_slice(self) -> Tuple[slice, slice]:
+    def get_subimage_slice(self, width=None) -> Tuple[slice, slice]:
+        if width is  None:
+            width = self.width
         if len(self) == 1:
-            offset = self.width/2 - 0.5
+            offset = width/2 - 0.5
             if self.width % 2:  # Round to int (array element center)
                 center = np.round(self._coords)
             else:  # Round to 0.5 (array grid lines)
                 center = np.round(self._coords - 0.5) + 0.5
             bounds = (center[:, np.newaxis] + np.array([[-offset, offset+1]])).astype(int)
+            # Move the negative lower bound to 0 to avoid slicing empty array
+            bounds = np.clip(bounds, a_min=0, a_max=None)
             return (slice(*bounds[1]), slice(*bounds[0]))
         raise ValueError('Wrong AOI length')
 
@@ -307,10 +311,12 @@ class Aois():
 
         for i, aoi in enumerate(self.iter_objects()):
             subimg_slice = aoi.get_subimage_slice()
+            height, width = [slice_obj.stop - slice_obj.start for slice_obj in subimg_slice]
             subimg_origin = [slice_obj.start for slice_obj in subimg_slice]
             subimg_origin.reverse()
-            x = np.arange(aoi.width)[np.newaxis, :]
-            xy = [x, x]
+            x = np.arange(width)[np.newaxis, :]
+            y = np.arange(height)[np.newaxis, :]
+            xy = [x, y]
             z = image[subimg_slice].ravel()
             fit_result[i] = fit_2d_gaussian(xy, z)
             fit_result[i, 1:3] += subimg_origin
@@ -393,6 +399,20 @@ class Aois():
             interpolated_image = f(*grid)
             intensity = np.sum(interpolated_image)
             return intensity
+        raise ValueError('Wrong AOI length')
+
+    def get_background_intensity(self, image):
+        if len(self) == 1:
+            sub_im_slice = self.get_subimage_slice(width=2*self.width+9)
+            origin = [slice_obj.start for slice_obj in sub_im_slice]
+            shape = [slice_obj.stop - slice_obj.start for slice_obj in sub_im_slice]
+            mask = np.ones(shape, dtype=bool)
+            aoi_slice = self.get_subimage_slice(width=2*self.width-1)
+            aoi_ogrid = np.ogrid[aoi_slice]
+            mask[aoi_ogrid[0] - origin[0], aoi_ogrid[1] - origin[1]] = 0
+            sub_im = image[sub_im_slice]
+            background = np.median(sub_im[mask])
+            return background
         raise ValueError('Wrong AOI length')
 
 

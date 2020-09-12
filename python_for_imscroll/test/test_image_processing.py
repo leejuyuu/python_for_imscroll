@@ -281,8 +281,14 @@ def test_aoi_get_subimage():
         assert isinstance(subimage_idx, tuple)
         assert len(subimage_idx) == 2
         y_slice, x_slice = subimage_idx
-        assert y_slice.stop - y_slice.start == 5
-        assert x_slice.stop - x_slice.start == 5
+        if (aoi._coords < 2).any():
+            assert y_slice.start == 0
+            assert x_slice.start == 0
+            assert y_slice.stop - y_slice.start <= 5
+            assert x_slice.stop - x_slice.start <= 5
+        else:
+            assert y_slice.stop - y_slice.start == 5
+            assert x_slice.stop - x_slice.start == 5
 
 
 def test_aoi_gaussian_refine():
@@ -388,3 +394,12 @@ def test_get_aoi_intensity():
     for i, aoi in enumerate(aois.iter_objects()):
         intensity = aoi.get_intensity(image)
         assert np.isnan(intensity)
+
+
+def test_get_background_intensity():
+    image = np.zeros((19, 19))
+    image[7:12, 7:12] = 1
+    image[np.logical_not(image)] = np.arange(336)
+    aoi = imp.Aois(np.array([9.1, 8.9]), frame=0)
+    bkg = aoi.get_background_intensity(image)
+    assert bkg == np.median(np.arange(336))
