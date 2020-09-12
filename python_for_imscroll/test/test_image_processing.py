@@ -13,6 +13,8 @@ import pytest
 import scipy.io as sio
 from python_for_imscroll import image_processing as imp
 
+TEST_DATA_DIR = pathlib.Path(__file__).parent / 'test_data'
+
 def test_read_glimpse_image():
     image_path = pathlib.Path(__file__).parent / 'test_data/fake_im/'
     image_sequence = imp.ImageSequence(image_path)
@@ -402,4 +404,13 @@ def test_get_background_intensity():
     image[np.logical_not(image)] = np.arange(336)
     aoi = imp.Aois(np.array([9.1, 8.9]), frame=0)
     bkg = aoi.get_background_intensity(image)
-    assert bkg == np.median(np.arange(336))
+    assert bkg == np.median(np.arange(336)) * 25
+
+
+def test_integration():
+    data_file = sio.loadmat(TEST_DATA_DIR / 'integration/test_integration.mat')
+    aois = imp.Aois(data_file['coords'] - 1, frame=0)
+    image = data_file['image']
+    true_background = data_file['bkg']
+    background = np.fromiter((aoi.get_background_intensity(image) for aoi in aois.iter_objects()), dtype='f')
+    np.testing.assert_allclose(background, true_background.squeeze())

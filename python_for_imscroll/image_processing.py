@@ -404,14 +404,13 @@ class Aois():
     def get_background_intensity(self, image):
         if len(self) == 1:
             sub_im_slice = self.get_subimage_slice(width=2*self.width+9)
-            origin = [slice_obj.start for slice_obj in sub_im_slice]
-            shape = [slice_obj.stop - slice_obj.start for slice_obj in sub_im_slice]
-            mask = np.ones(shape, dtype=bool)
-            aoi_slice = self.get_subimage_slice(width=2*self.width-1)
-            aoi_ogrid = np.ogrid[aoi_slice]
-            mask[aoi_ogrid[0] - origin[0], aoi_ogrid[1] - origin[1]] = 0
             sub_im = image[sub_im_slice]
-            background = np.median(sub_im[mask])
+            origin = [slice_obj.start for slice_obj in sub_im_slice]
+            aoi_slice = self.get_subimage_slice(width=2*self.width+1)
+            aoi_ogrid = np.ogrid[aoi_slice]
+            mask = np.ones(sub_im.shape, dtype=bool)
+            mask[aoi_ogrid[0] - origin[0], aoi_ogrid[1] - origin[1]] = 0
+            background = np.median(sub_im[mask]) * self.width**2
             return background
         raise ValueError('Wrong AOI length')
 
