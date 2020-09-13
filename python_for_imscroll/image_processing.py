@@ -287,6 +287,8 @@ class Aois():
                 'width': self.width}
 
     def iter_objects(self):
+        if len(self) == 1:
+            return (self,)
         gen_objects = (Aois(self._coords[i, :], **self._get_params())
                        for i in range(len(self)))
         return gen_objects
@@ -383,37 +385,43 @@ class Aois():
         return aois
 
     def get_interp2d_grid(self):
+        offset = self.width/2 - 0.5
+        # Note: cannot use arange directly with floats, as sometimes
+        # floating point error will create array with length > self.width
+        arange_width = np.arange(self.width)
+
+        # Need this because the self._coords is now 1D, cannot directly loop
+        # over it
         if len(self) == 1:
-            offset = self.width/2 - 0.5
-            x_start, y_start = self._coords - offset
-            # Note: cannot use arange directly with floats, as sometimes
-            # floating point error will create array with length > self.width
-            int_arr = np.arange(self.width)
-            return (x_start + int_arr, y_start + int_arr)
-        raise ValueError('Wrong AOI length')
+            coords = self._coords[np.newaxis, :]
+        else:
+            coords = self._coords
+
+        grid_list = []
+        for xy in coords:
+            x_start, y_start = xy - offset
+            grid_list.append((x_start + arange_width, y_start + arange_width))
+        return tuple(grid_list)
 
     def get_intensity(self, image):
-        if len(self) == 1:
-            grid = self.get_interp2d_grid()
-            y_max, x_max = image.shape
-            f = scipy.interpolate.interp2d(*np.ogrid[:x_max, :y_max], image, fill_value=np.nan)
-            interpolated_image = f(*grid)
-            intensity = np.sum(interpolated_image)
-            return intensity
-        raise ValueError('Wrong AOI length')
+        y_max, x_max = image.shape
+        f = scipy.interpolate.interp2d(*np.ogrid[:x_max, :y_max], image, fill_value=np.nan)
+        intensities = (np.sum(f(*grid)) for grid in self.get_interp2d_grid())
+        intensities = np.fromiter(intensities, dtype=np.double)
+        return intensities
 
     def get_background_intensity(self, image):
-        if len(self) == 1:
-            sub_im_slice = self.get_subimage_slice(width=2*self.width+9)
+        backgrounds = np.zeros(len(self), dtype=np.double)
+        for i, aoi in enumerate(self.iter_objects()):
+            sub_im_slice = aoi.get_subimage_slice(width=2*self.width+9)
             sub_im = image[sub_im_slice]
             origin = [slice_obj.start for slice_obj in sub_im_slice]
-            aoi_slice = self.get_subimage_slice(width=2*self.width+1)
+            aoi_slice = aoi.get_subimage_slice(width=2*self.width+1)
             aoi_ogrid = np.ogrid[aoi_slice]
             mask = np.ones(sub_im.shape, dtype=bool)
             mask[aoi_ogrid[0] - origin[0], aoi_ogrid[1] - origin[1]] = 0
-            background = np.median(sub_im[mask]) * self.width**2
-            return background
-        raise ValueError('Wrong AOI length')
+            backgrounds[i] = np.median(sub_im[mask]) * self.width**2
+        return backgrounds
 
 
 

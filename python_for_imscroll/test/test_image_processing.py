@@ -413,7 +413,13 @@ def test_integration():
     image = data_file['image']
     true_intensity = data_file['intensity']
     true_background = data_file['bkg']
-    intensity = np.fromiter((aoi.get_intensity(image) for aoi in aois.iter_objects()), dtype='f')
-    background = np.fromiter((aoi.get_background_intensity(image) for aoi in aois.iter_objects()), dtype='f')
+    intensity = np.fromiter((aoi.get_intensity(image) for aoi in aois.iter_objects()), dtype=np.double)
+    background = np.fromiter((aoi.get_background_intensity(image) for aoi in aois.iter_objects()), dtype=np.double)
     np.testing.assert_allclose(intensity, true_intensity.squeeze())
     np.testing.assert_allclose(background, true_background.squeeze())
+
+    # Test output array
+    intensity_2 = aois.get_intensity(image)
+    np.testing.assert_equal(intensity_2, intensity)
+    background_2 = aois.get_background_intensity(image)
+    np.testing.assert_equal(background_2, background)
