@@ -411,6 +411,9 @@ def test_integration():
     data_file = sio.loadmat(TEST_DATA_DIR / 'integration/test_integration.mat')
     aois = imp.Aois(data_file['coords'] - 1, frame=0)
     image = data_file['image']
+    true_intensity = data_file['intensity']
     true_background = data_file['bkg']
+    intensity = np.fromiter((aoi.get_intensity(image) for aoi in aois.iter_objects()), dtype='f')
     background = np.fromiter((aoi.get_background_intensity(image) for aoi in aois.iter_objects()), dtype='f')
+    np.testing.assert_allclose(intensity, true_intensity.squeeze())
     np.testing.assert_allclose(background, true_background.squeeze())

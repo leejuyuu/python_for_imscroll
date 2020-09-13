@@ -386,16 +386,17 @@ class Aois():
         if len(self) == 1:
             offset = self.width/2 - 0.5
             x_start, y_start = self._coords - offset
-            x_end, y_end = self._coords - offset + self.width
-            return np.ogrid[y_start:y_end, x_start:x_end]
+            # Note: cannot use arange directly with floats, as sometimes
+            # floating point error will create array with length > self.width
+            int_arr = np.arange(self.width)
+            return (x_start + int_arr, y_start + int_arr)
         raise ValueError('Wrong AOI length')
 
     def get_intensity(self, image):
         if len(self) == 1:
             grid = self.get_interp2d_grid()
-            grid = (arr.squeeze() for arr in grid)
             y_max, x_max = image.shape
-            f = scipy.interpolate.interp2d(*np.ogrid[:y_max, :x_max], image, fill_value=np.nan)
+            f = scipy.interpolate.interp2d(*np.ogrid[:x_max, :y_max], image, fill_value=np.nan)
             interpolated_image = f(*grid)
             intensity = np.sum(interpolated_image)
             return intensity
