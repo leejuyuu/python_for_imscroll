@@ -21,6 +21,6 @@ def make_drift_list_simple(drift_fit):
                                                        polyorder=2,
                                                        axis=0)
     driftlist = np.zeros((end_frame, 3))
-    driftlist[:, 0] = np.arange(1, end_frame+1)
+    driftlist[:, 0] = np.arange(end_frame)
     driftlist[start_frame:end_frame+1, 1:] = np.diff(filtered_displacement, axis=0)
     return driftlist
