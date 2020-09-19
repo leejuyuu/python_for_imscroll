@@ -29,7 +29,7 @@ class ImageSequence:
         if frame < 0:
             raise ValueError('Frame number must be positive integers or 0.')
         if frame >= self.length:
-            err_str = 'Frame number ({}) exceeds sequence length - 1 ({})'.format(self.length,
+            err_str = 'Frame number ({}) exceeds sequence length - 1 ({})'.format(frame,
                                                                                   self.length - 1)
             raise ValueError(err_str)
 
