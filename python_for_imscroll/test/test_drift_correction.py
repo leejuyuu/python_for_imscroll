@@ -51,3 +51,14 @@ def test_drift_corrector():
         correct_arr[:, 0] += frame-2
         correct_arr[:, 1] += (frame-2)*2
         np.testing.assert_allclose(new_aois._coords, correct_arr)
+
+
+def test_batch_shift_aois():
+    aoiinfo_path = TEST_DATA_DIR / '20200228/L2_aoi.dat'
+    aois = imp.Aois.from_imscroll_aoiinfo2(aoiinfo_path)
+    drifter = dcorr.DriftCorrector.from_imscroll(TEST_DATA_DIR / '20200228/L2_driftlist.dat')
+    correct_xy = sio.loadmat(TEST_DATA_DIR / '20200228/L2_batch_shift.mat')['xy'] - 1
+    for i in range(850):
+        print(aois.frame)
+        new_aois = drifter.shift_aois(aois, i)
+        np.testing.assert_allclose(new_aois._coords, correct_xy[:, :, i])

@@ -3,6 +3,7 @@
 
 import numpy as np
 import scipy.signal
+import scipy.io as sio
 import python_for_imscroll.image_processing as imp
 
 
@@ -42,3 +43,9 @@ class DriftCorrector:
                             frame_avg=aois.frame_avg,
                             channel=aois.channel)
         return new_aois
+
+    @classmethod
+    def from_imscroll(cls, path):
+        driftlist = sio.loadmat(path)['driftlist'][:, [0, 2, 1]]  # Swap x, y since imscroll image is transposed
+        driftlist[:, 0] -= 1
+        return cls(driftlist)
