@@ -373,6 +373,15 @@ class Aois():
         sio.savemat(path.with_suffix('.dat'), dict(aoiinfo2=aoiinfo))
 
     @classmethod
+    def from_imscroll_aoiinfo2(cls, path):
+        aoiinfo = sio.loadmat(path)['aoiinfo2']
+        aois = cls(aoiinfo[:, [3, 2]] - 1,
+                   frame=aoiinfo[0, 0] - 1,
+                   frame_avg=aoiinfo[0, 1],
+                   width=aoiinfo[0, 4])
+        return aois
+
+    @classmethod
     def from_npz(cls, path):
         npz_file = np.load(path, allow_pickle=False)
         channel = str(npz_file['channel'])
