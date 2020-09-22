@@ -218,6 +218,13 @@ class Aois():
     def channel(self):
         return self._channel
 
+    @channel.setter
+    def channel(self, value: str):
+        if self._channel is None:
+            self._channel = value
+        else:
+            raise AttributeError("can't overwrite defined channel")
+
     @property
     def frame(self):
         return self._frame
