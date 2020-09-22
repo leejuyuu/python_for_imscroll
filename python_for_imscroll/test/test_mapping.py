@@ -12,14 +12,9 @@ def test_mapper_from_imscroll():
     mapper = mapping.Mapper.from_imscroll(path)
     assert isinstance(mapper, mapping.Mapper)
     matrix = mapper.map_matrix[('blue', 'red')]
-    np.testing.assert_equal(matrix, sio.loadmat(path)['fitparmvector'])
 
-    arr = sio.loadmat(TEST_DATA_DIR / 'mapping/L2_aoi.dat')['aoiinfo2']
-    aois = imp.Aois(arr[:, 2:4],
-                    frame=20,
-                    width=7,
-                    frame_avg=5,
-                    channel='blue')
+    aois = imp.Aois.from_imscroll_aoiinfo2(TEST_DATA_DIR / 'mapping/L2_aoi.dat')
+    aois.channel = 'blue'
     for channel in ('red', 'blue'):
         new_aois = mapper.map(aois, to_channel=channel)
         assert isinstance(new_aois, imp.Aois)
@@ -28,8 +23,8 @@ def test_mapper_from_imscroll():
         assert new_aois.width == aois.width
         assert new_aois.channel == channel
         if channel == 'red':
-            correct_arr = sio.loadmat(TEST_DATA_DIR / 'mapping/L2_map.dat')['aoiinfo2']
-            np.testing.assert_allclose(new_aois._coords, correct_arr[:, 2:4], rtol=1e-14)
+            correct_aois = imp.Aois.from_imscroll_aoiinfo2(TEST_DATA_DIR / 'mapping/L2_map.dat')
+            np.testing.assert_allclose(new_aois._coords, correct_aois._coords, rtol=1e-6)
 
     with pytest.raises(ValueError) as exception_info:
         new_aois = mapper.map(aois, to_channel='green')
@@ -42,22 +37,16 @@ def test_mapper_from_imscroll():
             assert exception_info.value == 'To-channel is not one of the available channels'
 
     for from_channel in ('black', 123):
-        aois = imp.Aois(arr[:, 2:4],
-                        frame=20,
-                        width=7,
-                        frame_avg=5,
-                        channel=from_channel)
+        aois = imp.Aois.from_imscroll_aoiinfo2(TEST_DATA_DIR / 'mapping/L2_aoi.dat')
+        aois.channel = from_channel
         with pytest.raises(ValueError) as exception_info:
             new_aois = mapper.map(aois, to_channel=to_channel)
             assert exception_info.value == 'From-channel is not one of the available channels'
 
     from_channel = 'red'
     channel = 'blue'
-    aois = imp.Aois(arr[:, 2:4],
-                    frame=20,
-                    width=7,
-                    frame_avg=5,
-                    channel=from_channel)
+    aois = imp.Aois.from_imscroll_aoiinfo2(TEST_DATA_DIR / 'mapping/L2_aoi.dat')
+    aois.channel = from_channel
 
     new_aois = mapper.map(aois, to_channel=channel)
     assert isinstance(new_aois, imp.Aois)
@@ -65,5 +54,5 @@ def test_mapper_from_imscroll():
     assert new_aois.frame_avg == aois.frame_avg
     assert new_aois.width == aois.width
     assert new_aois.channel == channel
-    correct_arr = sio.loadmat(TEST_DATA_DIR / 'mapping/L2_inv_map.dat')['aoiinfo2']
-    np.testing.assert_allclose(new_aois._coords, correct_arr[:, 2:4], rtol=1e-15)
+    correct_aois = imp.Aois.from_imscroll_aoiinfo2(TEST_DATA_DIR / 'mapping/L2_inv_map.dat')
+    np.testing.assert_allclose(new_aois._coords, correct_aois._coords, rtol=1e-6)

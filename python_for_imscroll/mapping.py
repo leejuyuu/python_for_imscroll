@@ -29,7 +29,9 @@ class Mapper():
         else:
             raise ValueError('Mapping file name does not provide direction information.')
         mapper.map_matrix = dict()
-        mapper.map_matrix[direction] = sio.loadmat(path)['fitparmvector']
+        mapping_points = sio.loadmat(path)['mappingpoints']
+        mapper.map_matrix[direction] = make_map_matrix(mapping_points[:, [3, 2]]-1,
+                                                       mapping_points[:, [9, 8]]-1)
         return mapper
 
     def map(self, aois, to_channel: str):
@@ -71,3 +73,15 @@ class Mapper():
         inv_b = np.matmul(-inv_A, map_matrix[:, 2, np.newaxis])
         inv_map_matrix = np.concatenate((inv_A, inv_b), axis=1)
         return inv_map_matrix
+
+
+def make_map_matrix(x1y1, x2y2):
+    map_matrix = np.vstack((double_linear_regression(x2y2[:, 0], x1y1),
+                            double_linear_regression(x2y2[:, 1], x1y1)))
+    return map_matrix
+
+
+def double_linear_regression(y, x1x2):
+    X = np.hstack((x1x2, np.ones((x1x2.shape[0], 1))))
+    beta = np.matmul(np.linalg.inv(np.matmul(X.T, X)), np.matmul(X.T, y))
+    return beta.squeeze()
