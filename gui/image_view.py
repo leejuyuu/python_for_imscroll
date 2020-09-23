@@ -451,6 +451,12 @@ class Window(QtWidgets.QWidget):
         layout.setColumnStretch(1, 1)
         self.setLayout(layout)
 
+def set_qapplication():
+    # Always start by initializing Qt (only once per application)
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication([])
+
 
 def main():
 
