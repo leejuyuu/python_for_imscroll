@@ -423,3 +423,19 @@ def test_integration():
     np.testing.assert_equal(intensity_2, intensity)
     background_2 = aois.get_background_intensity(image)
     np.testing.assert_equal(background_2, background)
+
+
+def test_colocalization_from_high_low_spots():
+    interval_file = sio.loadmat(TEST_DATA_DIR / '20200228/L2_interval.dat')['intervals']['green'].item()
+    all_spots_high = interval_file['AllSpots'].item()['AllSpotsCells'].item()
+    all_spots_low = interval_file['AllSpotsLow'].item()['AllSpotsCells'].item()
+    atca = interval_file['AllTracesCellArray'].item()
+    shifted_xy = sio.loadmat(TEST_DATA_DIR / '20200228/L2_shiftedxy.mat')['shiftedXY']
+    is_colocalized = np.zeros((850, shifted_xy.shape[0]))
+    drifted_aois = [imp.Aois(shifted_xy[:, :, frame], frame) for frame in range(850)]
+    ref_aoi_high = [imp.Aois(all_spots_high[frame, 0][:, :2], frame=frame) for frame in range(850)]
+    ref_aoi_low = (imp.Aois(all_spots_low[frame, 0][:, :2], frame=frame) for frame in range(850))
+    is_colocalized = imp._colocalization_from_high_low_spots(drifted_aois, ref_aoi_high, ref_aoi_low)
+    for i_aoi in range(shifted_xy.shape[0]):
+        np.testing.assert_equal(is_colocalized[:, i_aoi],
+                                atca[i_aoi, 0][:, 2])

@@ -1,5 +1,6 @@
 from pathlib import Path
 import math
+import itertools
 from typing import Union, Tuple
 import scipy.io as sio
 import scipy.interpolate
@@ -463,3 +464,21 @@ def fit_2d_gaussian(xy, z):
                                        xtol=1e-10,
                                        max_nfev=10000)
     return popt
+
+
+def _colocalization_from_high_low_spots(aois, ref_high_aois_list, ref_low_aois_list):
+    n_frames = len(ref_high_aois_list)
+    if isinstance(aois, Aois):
+        n_aois = len(aois)
+        aois = itertools.repeat(aois, n_frames)
+    else:
+        n_aois = len(aois[0])
+    is_colocalized = np.zeros((n_frames, n_aois),
+                              dtype=bool)
+    for frame, (current_aois, ref_aoi_high, ref_aoi_low) in enumerate(zip(aois, ref_high_aois_list, ref_low_aois_list)):
+        in_range_high = current_aois.is_in_range_of(ref_aoi_high, 1.5)
+        in_range_low = current_aois.is_in_range_of(ref_aoi_low, 1.5*1.5)
+        is_colocalized[frame, :] = np.logical_or(in_range_high,
+                                                 np.logical_and(in_range_low,
+                                                                is_colocalized[frame-1, :]))
+    return is_colocalized
