@@ -22,9 +22,9 @@ class Mapper():
     def from_imscroll(cls, path):
         mapper = cls()
         file_name = str(path.stem)
-        match = re.search('_[rgb]{2}_', file_name)
+        match = re.search('_[rgb]{2}', file_name)
         if match:
-            direction_str = file_name[match.start()+1:match.end()-1]
+            direction_str = file_name[match.start()+1:match.end()]
             direction = MapDirection(*(DIR_DICT[i] for i in direction_str))
         else:
             raise ValueError('Mapping file name does not provide direction information.')

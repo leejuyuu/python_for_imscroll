@@ -25,7 +25,7 @@ def main():
 
     aois_path = iv.open_file_path_dialog()
     aois = imp.Aois.from_imscroll_aoiinfo2(aois_path)
-    aois.channel = 'blue'
+    aois.channel = 'green'
 
     traces = dict()
     for channel, image_sequence in sequences.items():
