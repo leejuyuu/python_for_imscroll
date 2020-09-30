@@ -33,7 +33,7 @@ def main():
             channel_aois = mapper.map(aois, to_channel=channel.em)
         else:
             channel_aois = aois
-        intensity = np.zeros(image_sequence.length, len(aois))
+        intensity = np.zeros((image_sequence.length, len(aois)))
         for frame, image in enumerate(image_sequence):
             raw_intensity = channel_aois.get_intensity(image)
             background = channel_aois.get_background_intensity(image)
