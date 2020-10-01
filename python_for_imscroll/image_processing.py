@@ -80,8 +80,7 @@ def conv2(v1, v2, m, mode='same'):
     return np.apply_along_axis(np.convolve, 1, tmp, v2, mode)
 
 def band_pass(image: np.ndarray, r_noise, r_object):
-    def normalize(x):
-        return x/sum(x)
+    normalize = lambda x: x/np.sum(x)
 
     if r_noise:
         gauss_kernel_size = np.ceil(r_noise * 5)
