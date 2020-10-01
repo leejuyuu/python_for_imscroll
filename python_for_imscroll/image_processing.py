@@ -7,6 +7,7 @@ import scipy.interpolate
 import scipy.ndimage
 import scipy.optimize
 import numpy as np
+from tqdm import tqdm
 
 
 
@@ -464,6 +465,23 @@ def fit_2d_gaussian(xy, z):
                                        xtol=1e-10,
                                        max_nfev=10000)
     return popt
+
+
+def analyze_colocalization(aois, image_sequence, thresholds, drift_corrector=None):
+    current_aois = aois
+    is_colocalized = np.zeros((image_sequence.length, len(aois)),
+                                    dtype=bool)
+    ref_aoi_high = []
+    ref_aoi_low = []
+    for frame, image in tqdm(enumerate(image_sequence), total=image_sequence.length):
+        if drift_corrector is not None:
+            current_aois = drift_corrector.shift_aois(aois, frame)
+        ref_aoi_high.append(pick_spots(image, threshold=thresholds[0]))
+        ref_aoi_low.append(pick_spots(image, threshold=thresholds[1]))
+    if drift_corrector is not None:
+        aois = [drift_corrector.shift_aois(aois, frame) for frame in range(image_sequence.length)]
+    is_colocalized = _colocalization_from_high_low_spots(aois, ref_aoi_high, ref_aoi_low)
+    return is_colocalized
 
 
 def _colocalization_from_high_low_spots(aois, ref_high_aois_list, ref_low_aois_list):
