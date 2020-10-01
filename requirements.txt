@@ -56,6 +56,7 @@ snakeviz==2.1.0
 tifffile==2020.2.16
 toml==0.10.1
 tornado==6.0.4
+tqdm==4.49.0
 tzlocal==2.0.0
 wcwidth==0.1.8
 wrapt==1.11.2

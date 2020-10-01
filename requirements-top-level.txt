@@ -11,4 +11,5 @@ rpy2
 scikit-image
 scipy
 seaborn
+tqdm
 xarray
