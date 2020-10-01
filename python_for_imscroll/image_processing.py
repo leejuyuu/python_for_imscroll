@@ -313,7 +313,7 @@ class Aois():
                 center = np.round(self._coords - 0.5) + 0.5
             bounds = (center[:, np.newaxis] + np.array([[-offset, offset+1]])).astype(int)
             # Move the negative lower bound to 0 to avoid slicing empty array
-            bounds = np.clip(bounds, a_min=0, a_max=None)
+            bounds[bounds < 0] = 0
             return (slice(*bounds[1]), slice(*bounds[0]))
         raise ValueError('Wrong AOI length')
 
