@@ -428,13 +428,29 @@ class Aois():
             return (self._coords == in_coord).all(axis=1).any()
         return False
 
-    def remove_close_aois(self, distance: int = 0):
+    def remove_close_aois(self, distance: int = 0) -> 'Aois':
+        """Find AOIs with center distance <= 'distance' and return an Aois object
+        without them.
+
+        Any AOI within the radius range of 'distance' from any other AOI in this
+        object will be marked as 'is_close'. This means more than 2 AOIs forming
+        a cluster will also be removed.
+
+        Args:
+            distance: The radius threshold to classify if two AOIs are close to
+                      each other.
+
+        Returns:
+            new_aois. A new Aois object without the 'is_close' AOIs.
+        """
         x = self.get_all_x()[np.newaxis]
         y = self.get_all_y()[np.newaxis]
         x_diff_squared = (x - x.T)**2
         y_diff_squared = (y - y.T)**2
         dist_arr = np.sqrt(x_diff_squared + y_diff_squared)
-        is_diag = np.identity(len(self), dtype=bool)  # Ignore same aoi distance == 0
+        # The diagonal is the diff of the same AOI, which will always == 0.
+        # Use masking to ignore.
+        is_diag = np.identity(len(self), dtype=bool)
         is_not_close = np.logical_or(dist_arr > distance, is_diag).all(axis=1)
         new_aois = Aois(self._coords[is_not_close, :],
                         frame=self.frame,
@@ -443,7 +459,9 @@ class Aois():
                         channel=self.channel)
         return new_aois
 
-    def is_in_range_of(self, ref_aois: 'Aois', radius: Union[int, float]) -> np.ndarray:
+    def is_in_range_of(self,
+                       ref_aois: 'Aois',
+                       radius: Union[int, float]) -> np.ndarray:
         x = self.get_all_x()[:, np.newaxis]
         y = self.get_all_y()[:, np.newaxis]
         ref_x = ref_aois.get_all_x()[np.newaxis]  # Produce row vector
