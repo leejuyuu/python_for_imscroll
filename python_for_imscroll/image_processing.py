@@ -1,6 +1,5 @@
-from pathlib import Path
-import math
 import itertools
+from pathlib import Path
 from typing import Union, Tuple
 import scipy.io as sio
 import scipy.interpolate
@@ -12,16 +11,15 @@ from tqdm import tqdm
 
 
 class ImageSequence:
-    def __init__(self, image_path):
-        header_file_path = image_path / 'header.mat'
 
-        header_file = sio.loadmat(header_file_path)
+    def __init__(self, image_path: Path):
+        self._image_path = image_path
+        header_file = sio.loadmat(image_path / 'header.mat')
         self._offset = header_file['vid']['offset'][0, 0].squeeze()
         self._file_number = header_file['vid']['filenumber'][0, 0].squeeze()
         self.width = header_file['vid']['width'][0, 0].item()
         self.height = header_file['vid']['height'][0, 0].item()
         self.length = header_file['vid']['nframes'][0, 0].item()
-        self._image_path = image_path
 
     def get_one_frame(self, frame: int):
         """
@@ -54,9 +52,6 @@ class ImageSequence:
     def __iter__(self):
         return (self.get_one_frame(frame) for frame in range(self.length))
 
-    def get_whole_stack(self):
-        return np.stack([self.get_one_frame(frame) for frame in range(self.length)],
-                        axis=-1)
 
     def get_averaged_image(self, start=0, size=1):
         start = int(start)
@@ -67,17 +62,17 @@ class ImageSequence:
         return image / size
 
 
-
-def conv2(v1, v2, m, mode='same'):
+def conv2(v1, v2, mat, mode='same'):
     """
-    Two-dimensional convolution of matrix m by vectors v1 and v2
+    Two-dimensional convolution of matrix mat by vectors v1 and v2
 
-    First convolves each column of 'm' with the vector 'v1'
+    First convolves each column of 'mat' with the vector 'v1'
     and then it convolves each row of the result with the vector 'v2'.
 
     """
-    tmp = np.apply_along_axis(np.convolve, 0, m, v1, mode)
-    return np.apply_along_axis(np.convolve, 1, tmp, v2, mode)
+    tmp = np.apply_along_axis(np.convolve, 0, mat, v1, mode)
+    convolved_mat = np.apply_along_axis(np.convolve, 1, tmp, v2, mode)
+    return convolved_mat
 
 def band_pass(image: np.ndarray, r_noise, r_object):
     normalize = lambda x: x/np.sum(x)
@@ -102,7 +97,7 @@ def band_pass(image: np.ndarray, r_noise, r_object):
     band_passed_image[-edge_size:, :] = 0
     band_passed_image[:, 0:edge_size] = 0
     band_passed_image[:, -edge_size:] = 0
-    band_passed_image[band_passed_image<0] = 0
+    band_passed_image[band_passed_image < 0] = 0
     return band_passed_image
 
 
@@ -121,7 +116,7 @@ def find_peaks(image, threshold, peak_size):
     # The index is labeled as x, y since the image was transposed
     x_idx, y_idx = idx.nonzero()
 
-    is_not_at_edge = np.logical_and.reduce((x_idx > peak_size -1,
+    is_not_at_edge = np.logical_and.reduce((x_idx > peak_size - 1,
                                             x_idx < width-peak_size - 1,
                                             y_idx > peak_size - 1,
                                             y_idx < height - peak_size - 1))
@@ -141,7 +136,8 @@ def find_peaks(image, threshold, peak_size):
             peak_image[y-c:y+c+2, x-c:x+c+2] = 0
             peak_image[y-c + max_peak_pos[0], x-c + max_peak_pos[1]] = max_peak_val
         x_idx, y_idx = (peak_image > 0).nonzero()
-    return np.stack((x_idx, y_idx), axis=-1)
+    peaks = np.stack((x_idx, y_idx), axis=-1)
+    return peaks
 
 
 def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
@@ -167,9 +163,7 @@ def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
     mask = _create_circular_mask(2*radius, radius=radius)
 
     peaks_out = np.zeros(peaks.shape)
-    for i, row in enumerate(peaks):
-        x = row[0]
-        y = row[1]
+    for i, (x, y) in enumerate(peaks):
         masked_roi = mask * image[y-radius+1:y+radius+1, x-radius+1:x+radius+1]
         norm = np.sum(masked_roi)
         x_avg = np.sum(masked_roi * x_weight) / norm + (x - radius + 1)
@@ -368,7 +362,10 @@ class Aois():
         formats = ['U10', int]
         dtype = dict(names=names, formats=formats)
         params = np.fromiter(params.items(), dtype=dtype, count=len(params))
-        np.savez(path, params=params, coords=self._coords, channel=np.array(self.channel, dtype='U5'))
+        np.savez(path,
+                 params=params,
+                 coords=self._coords,
+                 channel=np.array(self.channel, dtype='U5'))
 
     def to_imscroll_aoiinfo2(self, path):
         aoiinfo = np.zeros((len(self), 6))
@@ -467,14 +464,11 @@ def fit_2d_gaussian(xy, z):
 
 
 def analyze_colocalization(aois, image_sequence, thresholds, drift_corrector=None):
-    current_aois = aois
     is_colocalized = np.zeros((image_sequence.length, len(aois)),
-                                    dtype=bool)
+                              dtype=bool)
     ref_aoi_high = []
     ref_aoi_low = []
-    for frame, image in tqdm(enumerate(image_sequence), total=image_sequence.length):
-        if drift_corrector is not None:
-            current_aois = drift_corrector.shift_aois(aois, frame)
+    for image in tqdm(image_sequence, total=image_sequence.length):
         ref_aoi_high.append(pick_spots(image, threshold=thresholds[0]))
         ref_aoi_low.append(pick_spots(image, threshold=thresholds[1]))
     if drift_corrector is not None:
@@ -483,7 +477,9 @@ def analyze_colocalization(aois, image_sequence, thresholds, drift_corrector=Non
     return is_colocalized
 
 
-def _colocalization_from_high_low_spots(aois, ref_high_aois_list, ref_low_aois_list):
+def _colocalization_from_high_low_spots(aois: 'Aois',
+                                        ref_high_aois_list,
+                                        ref_low_aois_list):
     n_frames = len(ref_high_aois_list)
     if isinstance(aois, Aois):
         n_aois = len(aois)
