@@ -1,3 +1,25 @@
+#  Copyright (C) 1997 John C. Crocker and David G. Grier (IDL version of spot picking algorithm)
+#  Copyright (C) 2004-2008 Daniel Blair and Eric Dufresne (MATLAB version of spot picking algorithm)
+#  Copyright (C) 2015 Larry Friedman, Brandeis University
+#  Copyright (C) 2020 Tzu-Yu Lee, National Taiwan University
+#
+#  This file (image_processing.py) is part of python_for_imscroll.
+#
+#  python_for_imscroll is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  python_for_imscroll is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with python_for_imscroll.  If not, see <https://www.gnu.org/licenses/>.
+
+"""This module handles the processing to get data from image stacks."""
+
 import itertools
 from pathlib import Path
 from typing import Union, Tuple
@@ -9,9 +31,17 @@ import numpy as np
 from tqdm import tqdm
 
 
-
 class ImageSequence:
+    """Represents an Glimpse image stack on disk.
 
+    This class stores info about an Glimpse image stack on a disk and contains
+    methods to read images as arrays from this image stack.
+
+    Attributes:
+        width: The width of the image stack in pixels.
+        height: The height of the image stack in pixels.
+        length: The number of images in the image stack.
+    """
     def __init__(self, image_path: Path):
         self._image_path = image_path
         header_file = sio.loadmat(image_path / 'header.mat')
@@ -21,9 +51,14 @@ class ImageSequence:
         self.height = header_file['vid']['height'][0, 0].item()
         self.length = header_file['vid']['nframes'][0, 0].item()
 
-    def get_one_frame(self, frame: int):
-        """
-        Return one frame image in the sequence.
+    def get_one_frame(self, frame: int) -> np.ndarray:
+        """Read image of a specific frame from the sequence.
+
+        Args:
+            frame: The frame index of the requested image.
+
+        Returns:
+            The image array of the requested frame.
         """
         frame = int(frame)
         if frame < 0:
@@ -52,8 +87,16 @@ class ImageSequence:
     def __iter__(self):
         return (self.get_one_frame(frame) for frame in range(self.length))
 
+    def get_averaged_image(self, start: int = 0, size: int = 1) -> np.ndarray:
+        """Read images from frame range [start, start+size) and average them.
 
-    def get_averaged_image(self, start=0, size=1):
+        Args:
+            start: The starting index of the images to read from stack.
+            size: The numbers of frames to average.
+
+        Returns:
+            The averaged image array.
+        """
         start = int(start)
         size = int(size)
         image = 0
@@ -66,15 +109,58 @@ def conv2(v1, v2, mat, mode='same'):
     """
     Two-dimensional convolution of matrix mat by vectors v1 and v2
 
+    This function mimicks the behavior of MATLAB conv2.
+
     First convolves each column of 'mat' with the vector 'v1'
     and then it convolves each row of the result with the vector 'v2'.
 
+    See https://stackoverflow.com/questions/24231285/is-there-a-python-equivalent-to-matlabs-conv2h1-h2-a-same?noredirect=1&lq=1
+
+    Args:
+        v1: Input vector. Convolves with each column of 'mat'.
+        v2: Second input vector. Convolves with the convolution of 'v1' with the
+            columns of 'mat'.
+        mat: A 1D or 2D array that will be convolved.
+        mode: See the doc of numpy.convolve
+
+    Returns:
+        convolved_mat: The convolved array.
     """
     tmp = np.apply_along_axis(np.convolve, 0, mat, v1, mode)
     convolved_mat = np.apply_along_axis(np.convolve, 1, tmp, v2, mode)
     return convolved_mat
 
-def band_pass(image: np.ndarray, r_noise, r_object):
+def band_pass(image: np.ndarray, r_noise: float, r_object: int) -> np.ndarray:
+    """
+    Performs a bandpass filter on the input image.
+
+    To suppress pixel noise and long-wavelength image variations while retaining
+    information of a characteristic size.
+
+    Performs a bandpass by a two part process. First, a lowpassed image is
+    produced by convolving the original with a gaussian. Next, a second
+    lowpassed image is produced by convolving the original with a boxcar
+    function. By subtracting the boxcar version from the gaussian version, we
+    are using the boxcar version to perform a highpass.
+
+    Originally is the MATLAB bpass function written by David G. Grier and
+    John C. Crocker. See http://site.physics.georgetown.edu/matlab/.
+
+    Args:
+        image: The two-dimensional array to be filtered.
+        r_noise: Characteristic lengthscale of noise in pixels. Additive noise
+                 averaged over this length should vanish. May assume any
+                 positive floating value. When set to 0, only the highpass
+                 "background subtraction" operation is performed.
+
+        r_object: Integer length in pixels somewhat larger than a typical object.
+                  Can also be set to 0, in which case only the lowpass "blurring"
+                  operation defined by 'r_noise' is done, without the background
+                  subtraction defined by 'r_object'.
+
+    Returns:
+        filtered image.
+    """
     normalize = lambda x: x/np.sum(x)
 
     if r_noise:
@@ -101,7 +187,36 @@ def band_pass(image: np.ndarray, r_noise, r_object):
     return band_passed_image
 
 
-def find_peaks(image, threshold, peak_size):
+def find_peaks(image: np.ndarray, threshold: float, peak_size: float) -> np.ndarray:
+    """
+    Finds local maxima in an image to pixel level accuracy.
+
+    This provides a rough guess of particle centers to be used by
+    localize_centroid().
+
+    Translated from pkfnd.m written in MATLAB.
+    See http://site.physics.georgetown.edu/matlab/.
+
+    Notes:
+        Particle should be bright spots on dark background with little noise.
+        Often an bandpass filtered brightfield image or a nice fluorescent image.
+
+    Args:
+        image: The 2D array to process.
+        threshold: The minimum brightness of a pixel that might be local maxima.
+        peak_size: The expected size of a peak. If closed peaks in radius of
+                   peak_size/2 were found, they will be presented by only the
+                   brightest. Also removes all peaks withing peak_size from the
+                   image boundary.
+                   If image noisy such that a single particle has multiple local
+                   maxima), then set peak_size to a value slightly larger than
+                   the diameter of your particle.
+
+    Returns:
+        A N x 2 array with each row containing (x, y) coordinates of a local
+        maximum on the image.
+        Returns None when no local maximum was found.
+    """
     # Transpose the image to mimick the matlab index ordering, since the later
     # close peak removal is dependent on the order of the peaks.
     t_image = image.T
@@ -140,7 +255,40 @@ def find_peaks(image, threshold, peak_size):
     return peaks
 
 
-def localize_centroid(image: np.ndarray, peaks: np.ndarray, dia: int):
+def localize_centroid(image: np.ndarray,
+                      peaks: np.ndarray,
+                      dia: int) -> np.ndarray:
+    """
+    Calculates the centroid of peaks on an image to sub-pixel accuracy.
+
+    Translated from cntrd.m written by Eric R. Dufresne in MATLAB.
+    See http://site.physics.georgetown.edu/matlab/.
+
+    Notes:
+        - Particle should be bright spots on dark background with little noise.
+          Often an bandpass filtered brightfield image or a nice fluorescent
+          image.
+        - If find_peaks, and localize_centroid return more then one location per
+          particle, then you should try to filter the input image more carefully.
+          If you still get more than one peak for a particle, use the peak_size
+          parameter in find_peaks.
+        - If you want sub-pixel accuracy, you need to have a lot of pixels in
+          your window (dia>>1). To check for pixel bias, plot a histogram of the
+          fractional parts of the resulting locations.
+
+    Args:
+        image: The 2D array to process.
+        peaks: A M x 2 integer array with each row containing (x, y) coordinates
+               of a peak on the image.
+        dia: Odd integer. The diamter of the window over which to average to
+             calculate the centroid. This value should be big enough to capture
+             the whole particle but not so big that it captures others.
+             Recommended size is the long lengthscale used in band_pass() plus 2.
+
+    Returns:
+        peaks_out. A N x 2 float array with each row containing (x, y)
+                   coordinates to sub-pixel accuracy of a peak on the image.
+    """
     if peaks is None:  # There is no peak found by find_peaks()
         return None
     if dia % 2 != 1:
@@ -188,7 +336,32 @@ def _create_circular_mask(w, center=None, radius: float = None):
     return mask
 
 
-def pick_spots(image, threshold=50, noise_dia=1, spot_dia=5, frame=0, aoi_width=5, frame_avg=1):
+def pick_spots(image,
+               threshold=50,
+               noise_dia=1,
+               spot_dia=5,
+               frame=0,
+               aoi_width=5,
+               frame_avg=1) -> 'Aois':
+    """
+    Pick spots on an image and outputs the spots to an Aois object.
+
+    Args:
+        image: The 2D array to pick spot from.
+        threshold: The brightness threshold on the band-passed image that local
+                   maxima with brightness above which will be classified as
+                   spots.
+        noise_dia: The characteristic size of the noise on the image. Will be
+                   used in the band pass filter.
+        spot_dia: Odd integer. Should be slightly larger than the estimation of
+                  the spot diameter.
+        frame: The frame index of the image in the image stack.
+        aoi_width: The size of AOI to construct the Aois object.
+        frame_avg: The frame average of the image.
+
+    Returns:
+        The Aois object containing the localized centroid of spots.
+    """
     filtered_image = band_pass(image, r_noise=noise_dia, r_object=spot_dia)
     peaks = find_peaks(filtered_image, threshold=threshold, peak_size=spot_dia)
     peak_centroids = localize_centroid(filtered_image, peaks=peaks, dia=spot_dia)
@@ -196,7 +369,17 @@ def pick_spots(image, threshold=50, noise_dia=1, spot_dia=5, frame=0, aoi_width=
 
 
 class Aois():
-    def __init__(self, coords: np.ndarray, frame: int, frame_avg: int = 1, width: int = 5, channel=None):
+    """Stores the coordinates info of AOIs and contains image indexing methods.
+
+    Attributes:
+        width: The width of the AOI in pixels.
+    """
+    def __init__(self,
+                 coords: np.ndarray,
+                 frame: int,
+                 frame_avg: int = 1,
+                 width: int = 5,
+                 channel=None):
         self._frame_avg = frame_avg
         self._frame = frame
         self.width = width
@@ -210,7 +393,8 @@ class Aois():
         return self._coords[:, 1]
 
     @property
-    def channel(self):
+    def channel(self) -> str:
+        """The image channel where these AOIs are picked."""
         return self._channel
 
     @channel.setter
@@ -222,10 +406,12 @@ class Aois():
 
     @property
     def frame(self):
+        """The image frame index where these AOIs are picked"""
         return self._frame
 
     @property
     def frame_avg(self):
+        """The image frame average where these AOIs are picked"""
         return self._frame_avg
 
     def __len__(self):
@@ -257,7 +443,7 @@ class Aois():
                         channel=self.channel)
         return new_aois
 
-    def is_in_range_of(self, ref_aois: 'Aois', radius: Union[int, float]):
+    def is_in_range_of(self, ref_aois: 'Aois', radius: Union[int, float]) -> np.ndarray:
         x = self.get_all_x()[:, np.newaxis]
         y = self.get_all_y()[:, np.newaxis]
         ref_x = ref_aois.get_all_x()[np.newaxis]  # Produce row vector
