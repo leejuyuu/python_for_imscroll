@@ -59,7 +59,7 @@ def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
     plt.xlabel('time (s)', fontsize=16)
     plt.rcParams['svg.fonttype'] = 'none'
     plt.savefig(save_dir / ('molecule{}.{}'.format(molecule_number, save_format)),
-                Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
+                dpi=300, bbox_inches='tight', format=save_format)
     plt.close()
 
 
@@ -130,7 +130,7 @@ def plot_scatter_and_linear_fit(x, y, fit_result: dict,
     ax.text(0.1, 0.8, r'$R^2 = {:.5f}$'.format(fit_result['r_squared']),
             transform=ax.transAxes, fontsize=12)
     plt.rcParams['svg.fonttype'] = 'none'
-    fig.savefig(save_fig_path, format='svg', Transparent=True, dpi=300, bbox_inches='tight')
+    fig.savefig(save_fig_path, format='svg', dpi=300, bbox_inches='tight')
 
 
 
