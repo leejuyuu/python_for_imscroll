@@ -10,6 +10,7 @@ PySide2
 rpy2
 scikit-image
 scipy
+strictyaml
 seaborn
 tqdm
 xarray

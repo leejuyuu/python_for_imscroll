@@ -28,9 +28,9 @@ import rpy2.robjects.pandas2ri
 from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 from matplotlib import pyplot as plt
-from lifelines import KaplanMeierFitter, ExponentialFitter
 from scipy import optimize
 import seaborn as sns
+import strictyaml
 from python_for_imscroll import imscrollIO, utils
 from python_for_imscroll import binding_kinetics
 rpy2.robjects.pandas2ri.activate()
@@ -61,36 +61,47 @@ def make_high_dwell_survival_time_df(intervals: 'Intervals'):
     return dwells_df
 
 
-def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
-                          time_offset: float = 0):
-    datapath = imscrollIO.def_data_path()
-    im_format = 'svg'
-    excluded_aois = (2,5,7,13,19,31,32,44,54,56,58,62,67,73,74,81,87,91,97,100,110,113,116,121,127,128,)
-    for i_sheet in sheet_list:
-        dfs = utils.read_excel(parameter_file_path, sheet_name=i_sheet)
-        filestr = dfs.filename[0]
-        all_file_path = datapath / (filestr + '_all.json')
-        interval_object = Intervals.from_all_file(all_file_path)
-        interval_object.exclude_aois(excluded_aois)
-        time_offset = read_time_offset(parameter_file_path, i_sheet)
-        interval_object.set_time_offset(time_offset)
-        df = make_first_dwell_survival_time_df(interval_object)
-        survival_fitter = SurvivalFitter(df, model='bi-exp')
-        survival_fitter.estimate_survival_curve_r()
-        survival_fitter.estimate_model_parameter()
-        save_fig_path = datapath / (i_sheet + '_first_on' + '.' + im_format)
-        survival_fitter.plot(save_fig_path)
-        data_file_path = save_fig_path.with_suffix('.npz')
-        survival_fitter.to_npz(data_file_path)
+def calculate_on_off_rate(intervals, save_path):
+    df = make_first_dwell_survival_time_df(intervals)
+    survival_fitter = SurvivalFitter(df, model='bi-exp')
+    survival_fitter.estimate_survival_curve_r()
+    survival_fitter.estimate_model_parameter()
+    save_fig_path = save_path.with_name(save_path.name + '_first_on.svg')
+    survival_fitter.plot(save_fig_path)
+    data_file_path = save_fig_path.with_suffix('.npz')
+    survival_fitter.to_npz(data_file_path)
 
-        df = make_high_dwell_survival_time_df(interval_object)
-        survival_fitter = SurvivalFitter(df, model='exp')
-        survival_fitter.estimate_survival_curve_r()
-        survival_fitter.estimate_model_parameter()
-        save_fig_path = datapath / (i_sheet + '_off' + '.' + im_format)
-        survival_fitter.plot(save_fig_path)
-        data_file_path = save_fig_path.with_suffix('.npz')
-        survival_fitter.to_npz(data_file_path)
+    df = make_high_dwell_survival_time_df(intervals)
+    survival_fitter = SurvivalFitter(df, model='exp')
+    survival_fitter.estimate_survival_curve_r()
+    survival_fitter.estimate_model_parameter()
+    save_fig_path = save_path.with_name(save_path.name + '_off.svg')
+    survival_fitter.plot(save_fig_path)
+    data_file_path = save_fig_path.with_suffix('.npz')
+    survival_fitter.to_npz(data_file_path)
+
+
+def read_excluded_aois(filestr: str, datapath: Path):
+    date_str = datapath.parent.name
+    discarded_txt_path = datapath.with_name(datapath.parent.name + '_discarded.txt')
+    if discarded_txt_path.is_file():
+        with open(discarded_txt_path, 'r') as f:
+            content = f.read()
+        excluded_aois_dict = strictyaml.load(content)
+        excluded_aois = [int(i) for i in excluded_aois_dict[filestr].data.strip(',').split(',')]
+        return excluded_aois
+    else:
+        raise FileNotFoundError(f'File {str(discarded_txt_path)} is not found.')
+
+
+def find_on_off_rate(filestr: str, datapath: Path, parameter_df):
+    all_file_path = datapath / (filestr + '_all.json')
+    interval_object = Intervals.from_all_file(all_file_path)
+    interval_object.exclude_aois(read_excluded_aois(filestr, datapath))
+    time_offset = parameter_df.loc[parameter_df['filename'] == filestr, 'time offset']
+    interval_object.set_time_offset(time_offset)
+    save_path = all_file_path.with_name(filestr)
+    calculate_on_off_rate(interval_object, save_path)
 
 
 def log_sum_exp(arr):
@@ -297,8 +308,14 @@ class Intervals:
 def main():
     """main function"""
     xlsx_parameter_file_path = imscrollIO.get_xlsx_parameter_file_path()
-    sheet_list = imscrollIO.input_sheets_for_analysis()
-    find_first_dwell_time(xlsx_parameter_file_path, sheet_list)
+    datapath = imscrollIO.def_data_path()
+    dfs = utils.read_excel(xlsx_parameter_file_path, sheet_name='all')
+    for filestr in dfs['filename']:
+        try:
+            find_on_off_rate(filestr, datapath, dfs)
+        except ValueError as e:
+            print(repr(e))
+            continue
 
 
 if __name__ == '__main__':
