@@ -103,8 +103,8 @@ def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
         save_fig_path = datapath / (i_sheet + '_' + '_first_dwellr' + '.' + im_format)
         survival_fitter.plot(save_fig_path)
 
-        data_file_path = save_fig_path.with_suffix('.hdf5')
-        survival_fitter.to_hdf5(data_file_path)
+        data_file_path = save_fig_path.with_suffix('.npz')
+        survival_fitter.to_npz(data_file_path)
 
 
 def log_sum_exp(arr):
@@ -216,7 +216,6 @@ class SurvivalFitter:
             group_exp_model.create_dataset('param', (3,), 'f', self.param)
 
     def to_npz(self, path: Path):
-        pass
 
 
 
@@ -247,6 +246,11 @@ def plot_survival_curve(kmf: KaplanMeierFitter,
                 dpi=300, bbox_inches='tight')
 
     plt.close()
+        np.savez(path,
+                 data=self.data.to_records(),
+                 survival_curve=self.survival_curve.to_records(),
+                 model=np.array([self.model], dtype='U10'),
+                 param=self.param)
 
 
 def read_time_offset(parameter_file_path: Path, sheet: str):
