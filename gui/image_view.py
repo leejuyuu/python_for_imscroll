@@ -185,6 +185,7 @@ class MyImageView(pg.ImageView):
 
 
 def save_file_path_dialog() -> Path:
+    set_qapplication()
     file_path, _ = QtWidgets.QFileDialog.getSaveFileName(caption='Save to file')
     if file_path == '':
         return None
@@ -193,6 +194,7 @@ def save_file_path_dialog() -> Path:
 
 
 def open_file_path_dialog() -> Path:
+    set_qapplication()
     file_path, _ = QtWidgets.QFileDialog.getOpenFileName(caption='Select file to open')
     if file_path == '':
         return None
@@ -201,6 +203,7 @@ def open_file_path_dialog() -> Path:
 
 
 def select_directory_dialog() -> Path:
+    set_qapplication()
     dir_path = QtWidgets.QFileDialog.getExistingDirectory(caption='Select a directory')
     if dir_path == '':
         return None
@@ -451,6 +454,10 @@ class Window(QtWidgets.QWidget):
         layout.setColumnStretch(1, 1)
         self.setLayout(layout)
 
+def set_qapplication():
+    app = QtWidgets.QApplication.instance()
+    if app is None:
+        app = QtWidgets.QApplication([])
 
 def main():
 
