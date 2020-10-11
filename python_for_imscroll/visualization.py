@@ -25,6 +25,7 @@ import numpy as np
 import seaborn as sns
 from python_for_imscroll import imscrollIO
 from python_for_imscroll import binding_kinetics
+from python_for_imscroll import utils
 
 
 def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
@@ -67,10 +68,10 @@ def plot_one_trace_and_save(molecule_data: xr.Dataset, category: str = '',
     plt.rcParams['svg.fonttype'] = 'none'
     if time_offset:
         plt.savefig(save_dir / ('molecule{}_shifted.{}'.format(molecule_number, save_format)),
-                    Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
+                    dpi=300, bbox_inches='tight', format=save_format)
     else:
         plt.savefig(save_dir / ('molecule{}.{}'.format(molecule_number, save_format)),
-                    Transparent=True, dpi=300, bbox_inches='tight', format=save_format)
+                    dpi=300, bbox_inches='tight', format=save_format)
     plt.close()
 
 
@@ -78,7 +79,7 @@ def main():
     """Plot traces from every molecule in the dataset and save them as png files."""
     xlspath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20191106//20191106parameterFile.xlsx')
     sheet = 'L1_03'
-    dfs = pd.read_excel(xlspath, sheet_name=sheet)
+    dfs = utils.read_excel(xlspath, sheet_name=sheet)
     datapath = imscrollIO.def_data_path()
     im_format = 'png'
     nFiles = dfs.shape[0]
@@ -141,7 +142,7 @@ def plot_scatter_and_linear_fit(x, y, fit_result: dict,
     ax.text(0.1, 0.8, r'$R^2 = {:.5f}$'.format(fit_result['r_squared']),
             transform=ax.transAxes, fontsize=12)
     plt.rcParams['svg.fonttype'] = 'none'
-    fig.savefig(save_fig_path, format='svg', Transparent=True, dpi=300, bbox_inches='tight')
+    fig.savefig(save_fig_path, format='svg', dpi=300, bbox_inches='tight')
 
 
 def plot_error_and_linear_fit(x, y, y_err, fit_result: dict,

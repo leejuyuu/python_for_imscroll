@@ -48,7 +48,7 @@ def main():
     ax.set_ylabel('Survival probability', fontsize=14)
     ax.legend(frameon=False)
     plt.rcParams['svg.fonttype'] = 'none'
-    fig.savefig(datapath / 'temp.svg', format='svg', Transparent=True,
+    fig.savefig(datapath / 'temp.svg', format='svg',
                 dpi=300, bbox_inches='tight')
 
 

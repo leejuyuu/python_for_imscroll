@@ -21,7 +21,7 @@ for further analysis in python."""
 from typing import List
 from pathlib import Path
 import pandas as pd
-from python_for_imscroll import imscrollIO
+from python_for_imscroll import imscrollIO, utils
 
 
 def group_imscroll_data_to_xr_json(xlspath: Path, sheet_list: List[str],
@@ -37,7 +37,7 @@ def group_imscroll_data_to_xr_json(xlspath: Path, sheet_list: List[str],
     if datapath is None:
         datapath = imscrollIO.def_data_path()
     for i_sheet in sheet_list:
-        dfs = pd.read_excel(xlspath, sheet_name=i_sheet)
+        dfs = utils.read_excel(xlspath, sheet_name=i_sheet)
 
         for filestr, frame_start, frame_end in zip(dfs.filename, dfs['framestart'], dfs['frame end']):
             data = imscrollIO.initialize_data_from_intensity_traces(datapath, filestr, (frame_start - 1, frame_end))

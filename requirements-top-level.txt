@@ -3,13 +3,15 @@ lifelines
 matplotlib
 numpy
 odfpy
+openpyxl
 pandas
-PyQt5
+pyqtgraph
 PySide2
 rpy2
 scikit-image
 scipy
+strictyaml
 seaborn
 scikit-image
+tqdm
 xarray
-xlrd

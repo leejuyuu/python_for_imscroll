@@ -28,93 +28,81 @@ import rpy2.robjects.pandas2ri
 from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 from matplotlib import pyplot as plt
-from lifelines import KaplanMeierFitter, ExponentialFitter
 from scipy import optimize
-from python_for_imscroll import imscrollIO
+import seaborn as sns
+import strictyaml
+from python_for_imscroll import imscrollIO, utils
 from python_for_imscroll import binding_kinetics
+rpy2.robjects.pandas2ri.activate()
+r_survival = importr('survival')
 
 
-def find_two_state_dwell_time(parameter_file_path: Path, sheet_list: List[str]):
-    datapath = imscrollIO.def_data_path()
-    state_category = '1'
-    state_list = ['low', 'high']
+def make_first_dwell_survival_time_df(intervals: 'Intervals'):
+    n_right_censored = intervals.count_flat_zero_traces()
+    dwells = intervals.get_two_state_first_event_time()
+    interval_censor_table = np.zeros((len(dwells.duration)+n_right_censored,
+                                        2))
 
-    im_format = 'svg'
-    for i_sheet in sheet_list:
-        interval_list, n_good_traces, max_time = read_interval_data(parameter_file_path,
-                                                                    datapath,
-                                                                    i_sheet,
-                                                                    state_category)
-        excluded_aois = (4,9,12,14,40,58,74,79,106,120,124,)
-        intervals = interval_list[0]
-        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
-        interval_list[0] = intervals.sel(AOI=selected_aois)
-        for i, item in enumerate(state_list):
-            dwells = binding_kinetics.extract_dwell_time(interval_list, i)
-            if len(dwells.duration) == 0:
-                print('no {} state found'.format(item))
-                continue
-            kmf = KaplanMeierFitter()
-            exf = ExponentialFitter()
-            kmf.fit(dwells.duration, dwells.event_observed)
-            exf.fit(dwells.duration, dwells.event_observed)
-            n_event = np.count_nonzero(dwells.event_observed)
-            n_censored = len(dwells.event_observed) - n_event
-            stat_counts = (n_event, n_censored, n_good_traces)
-            save_fig_path = datapath / (i_sheet + '_' + item + '_dwell' + '.' + im_format)
-            plot_survival_curve(kmf, exf, i, stat_counts, save_fig_path,
-                                x_right_lim=max_time)
+    interval_censor_table[0:len(dwells.duration), 0] = dwells.duration.values
+    interval_censor_table[0:len(dwells.duration), 1] = xr.where(dwells.event_observed,
+                                                                1,
+                                                                2).values
+    interval_censor_table[len(dwells.duration):, 0] = intervals.get_max_time()
+    interval_censor_table[len(dwells.duration):, 1] = 0
+    df = pd.DataFrame(interval_censor_table, columns=['time', 'status'])
+    return df
 
 
-def find_first_dwell_time(parameter_file_path: Path, sheet_list: List[str],
-                          time_offset: float = 0):
-    datapath = imscrollIO.def_data_path()
-    state_category = '1'
-    im_format = 'svg'
-    excluded_aois = (35,36,37,38,52,53,64,65,67,75,77,79,81,87,89,98,107,115,116,118,122,127,131,145,147,149,150,152,153,154,156,158,159,)
-    for i_sheet in sheet_list:
-        time_offset = read_time_offset(parameter_file_path, i_sheet)
-        zero_state_interval_list = read_interval_data(parameter_file_path,
-                                                      datapath,
-                                                      i_sheet,
-                                                      '0',
-                                                      first_only=True)[0]
-        intervals = zero_state_interval_list[0]
-        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
-        zero_state_interval_list[0] = intervals.sel(AOI=selected_aois)
-        n_right_censored = len(zero_state_interval_list[0].AOI)
-        interval_list, n_good_traces, max_time = read_interval_data(parameter_file_path,
-                                                                    datapath,
-                                                                    i_sheet,
-                                                                    state_category,
-                                                                    first_only=True)
-        intervals = interval_list[0]
-        selected_aois = [aoi for aoi in intervals.AOI if aoi not in excluded_aois]
-        interval_list[0] = intervals.sel(AOI=selected_aois)
+def make_high_dwell_survival_time_df(intervals: 'Intervals'):
+    dwells = intervals.get_two_state_dwell_time(state=1)
+    dwells_df = dwells.to_dataframe()[['duration', 'event_observed']]
+    dwells_df = dwells_df.rename(columns={'duration': 'time', 'event_observed': 'status'})
+    dwells_df['status'] = dwells_df['status'].astype(int)
+    return dwells_df
 
-        dwells = binding_kinetics.extract_first_binding_time(interval_list)
-        dwells['duration'] += time_offset
-        max_time += time_offset
-        interval_censor_table = np.zeros((len(dwells.duration)+n_right_censored,
-                                          2))
 
-        interval_censor_table[0:len(dwells.duration), 0] = dwells.duration.values
-        interval_censor_table[0:len(dwells.duration), 1] = xr.where(dwells.event_observed,
-                                                                    1,
-                                                                    2).values
-        interval_censor_table[len(dwells.duration):, 0] = max_time
-        interval_censor_table[len(dwells.duration):, 1] = 0
-        df = pd.DataFrame(interval_censor_table, columns=['time', 'status'])
+def calculate_on_off_rate(intervals, save_path):
+    df = make_first_dwell_survival_time_df(intervals)
+    survival_fitter = SurvivalFitter(df, model='bi-exp')
+    survival_fitter.estimate_survival_curve_r()
+    survival_fitter.estimate_model_parameter()
+    save_fig_path = save_path.with_name(save_path.name + '_first_on.svg')
+    survival_fitter.plot(save_fig_path)
+    data_file_path = save_fig_path.with_suffix('.npz')
+    survival_fitter.to_npz(data_file_path)
 
-        if len(dwells.duration) == 0:
-            print('no low state found')
-            continue
-        n_event = np.count_nonzero(dwells.event_observed)
-        n_censored = len(dwells.event_observed) - n_event
-        stat_counts = (n_event, n_censored, n_right_censored)
+    df = make_high_dwell_survival_time_df(intervals)
+    survival_fitter = SurvivalFitter(df, model='exp')
+    survival_fitter.estimate_survival_curve_r()
+    survival_fitter.estimate_model_parameter()
+    save_fig_path = save_path.with_name(save_path.name + '_off.svg')
+    survival_fitter.plot(save_fig_path)
+    data_file_path = save_fig_path.with_suffix('.npz')
+    survival_fitter.to_npz(data_file_path)
 
-        save_fig_path = datapath / (i_sheet + '_' + '_first_dwellr' + '.' + im_format)
-        call_r_survival(df, save_fig_path, stat_counts)
+
+def read_excluded_aois(filestr: str, datapath: Path):
+    date_str = datapath.parent.name
+    discarded_txt_path = datapath.with_name(datapath.parent.name + '_discarded.txt')
+    if discarded_txt_path.is_file():
+        with open(discarded_txt_path, 'r') as f:
+            content = f.read()
+        excluded_aois_dict = strictyaml.load(content)
+        excluded_aois = [int(i) for i in excluded_aois_dict[filestr].data.strip(',').split(',')]
+        return excluded_aois
+    else:
+        raise FileNotFoundError(f'File {str(discarded_txt_path)} is not found.')
+
+
+def find_on_off_rate(filestr: str, datapath: Path, parameter_df):
+    all_file_path = datapath / (filestr + '_all.json')
+    interval_object = Intervals.from_all_file(all_file_path)
+    interval_object.exclude_aois(read_excluded_aois(filestr, datapath))
+    time_offset = parameter_df.loc[parameter_df['filename'] == filestr, 'time offset']
+    interval_object.set_time_offset(time_offset)
+    save_path = all_file_path.with_name(filestr)
+    calculate_on_off_rate(interval_object, save_path)
+
 
 def log_sum_exp(arr):
     x_max = arr.max(axis=0)
@@ -129,8 +117,6 @@ def sum_log_f(log_t, log_k1, log_k2, log_A):
 
 
 def log_S(log_t, log_k1, log_k2, log_A):
-    print(log_A)
-    print(np.exp(log_A), np.exp(log1mexp(-log_A)))
     term1 = log_A - np.exp(log_k1 + log_t)
     term2 = log1mexp(-log_A) - np.exp(log_k2 + log_t)
     log_S_arr = log_sum_exp(np.stack((term1, term2), axis=0))
@@ -159,140 +145,177 @@ def fit_biexponential(data):
     return result
 
 
-def call_r_survival(df: pd.DataFrame, save_path: Path, stat_counts: Tuple[int, int, int]):
-    rpy2.robjects.pandas2ri.activate()
-    survival = importr('survival')
+class SurvivalFitter:
+    def __init__(self, survival_data: pd.DataFrame, model: str):
+        self.data = survival_data
+        self.model = model
+        self.param = None
 
-    with localconverter(robjects.default_converter + rpy2.robjects.pandas2ri.converter):
-        r_from_pd_df = robjects.conversion.py2rpy(df)
-    robjects.r('surv <- with({}, Surv(time=time, time2=time, event=status, type="interval"))'.format(r_from_pd_df.r_repr()))
-    robjects.r('fit <- survfit(surv~1, data={})'.format(r_from_pd_df.r_repr()))
-    robjects.r('fit0 <- survfit0(fit)')
-    time = robjects.r('fit0[["time"]]')
-    surv = robjects.r('fit0[["surv"]]')
-    upper_ci = robjects.r('fit0[["upper"]]')
-    lower_ci = robjects.r('fit0[["lower"]]')
+    def estimate_survival_curve_r(self):
+        with localconverter(robjects.default_converter + rpy2.robjects.pandas2ri.converter):
+            r_from_pd_df = robjects.conversion.py2rpy(self.data)
+        robjects.r('surv <- with({}, Surv(time=time, time2=time, event=status, type="interval"))'.format(r_from_pd_df.r_repr()))
+        robjects.r('fit <- survfit(surv~1, data={})'.format(r_from_pd_df.r_repr()))
+        robjects.r('fit0 <- survfit0(fit)')
+        output = dict()
+        output['time'] = robjects.r('fit0[["time"]]')
+        output['surv'] = robjects.r('fit0[["surv"]]')
+        output['upper_ci'] = robjects.r('fit0[["upper"]]')
+        output['lower_ci'] = robjects.r('fit0[["lower"]]')
+        self.survival_curve = pd.DataFrame(output, columns=['time', 'surv', 'upper_ci', 'lower_ci'])
 
-    robjects.r('exreg <- survreg(surv~1, data={}, dist="exponential")'.format(r_from_pd_df.r_repr()))
-    intercept = robjects.r('exreg["coefficients"]')[0].item()
-    log_var = robjects.r('exreg["var"]')[0].item()
+    def estimate_model_parameter(self):
+        if self.model == 'exp':
+            self._model_func = lambda t, k: np.exp(-k*t)
+            with localconverter(robjects.default_converter + rpy2.robjects.pandas2ri.converter):
+                r_from_pd_df = robjects.conversion.py2rpy(self.data)
+            robjects.r('surv <- with({}, Surv(time=time, time2=time, event=status, type="interval"))'.format(r_from_pd_df.r_repr()))
+            robjects.r('exreg <- survreg(surv~1, data={}, dist="exponential")'.format(r_from_pd_df.r_repr()))
+            intercept = robjects.r('exreg["coefficients"]')[0].item()
+            log_var = robjects.r('exreg["var"]')[0].item()
+            self.param = [np.exp(-intercept)]
+        elif self.model == 'bi-exp':
+            self._model_func = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
+            result = fit_biexponential(self.data)
+            self.param = np.exp(result.x)
 
+    def plot(self, save_fig_path: Path = None):
+        color = sns.color_palette(palette='muted')[0]
+        fill_color = sns.color_palette(palette='pastel')[0] + (80/255,)
+        surv = self.survival_curve
+        x = np.linspace(0, surv['time'].iloc[-1], int(round(surv['time'].iloc[-1]*10)))
+        y = self._model_func(x, *self.param)
 
-    result = fit_biexponential(df)
-    param = np.exp(result.x)
-    print(1/param[:2], param[2])
+        fig, ax = plt.subplots(figsize=(4, 3))
+        sns.despine(fig, ax)
+        ax.plot(x, y, color=sns.color_palette(palette='muted')[1])
+        ax.step(surv['time'], surv['surv'], where='post', color=color)
+        ax.fill_between(surv['time'], surv['lower_ci'], surv['upper_ci'], step='post', color=fill_color)
+        n_total = len(self.data['status'])
+        n_right_censored = n_total - np.count_nonzero(self.data['status'])
+        n_left_censored = np.count_nonzero(self.data['status'] == 2)
+        stat_counts = (n_total, n_right_censored, n_left_censored)
+        string = '{}, r {}, l {}'.format(*stat_counts)
+        ax.text(0.6, 0.6, string, transform=ax.transAxes, fontsize=14)
 
-    S = lambda t, k1, k2, A: A*np.exp(-k1*t) + (1-A)*np.exp(-k2*t)
-    k = np.exp(-intercept)
-    tau_ci = np.exp(intercept + np.array([-1, 1])*log_var)
-    x = np.linspace(0, time[-1], int(round(time[-1]*10)))
-    y = np.exp(-k*x)
-    y = S(x, *param)
-
-
-    plt.step(time, surv, where='post')
-    plt.plot(x, y)
-    plt.step(time, upper_ci, 'c', where='post')
-    plt.step(time, lower_ci, 'c', where='post')
-    plt.ylim(bottom=0)
-    ax = plt.gca()
-    k_str = r'$k_{{{}}}$ = {:.1f} s'.format('obs', 1/k.item())
-    plt.text(0.6, 0.8, k_str, transform=ax.transAxes, fontsize=14)
-    string = '{}, {}, {}'.format(*stat_counts)
-    plt.text(0.6, 0.6, string, transform=ax.transAxes, fontsize=14)
-    ci_string = 'ci: [{:.1f}, {:.1f}]'.format(tau_ci[0], tau_ci[1])
-    plt.text(0.6, 0.7, ci_string, transform=ax.transAxes, fontsize=14)
-
-    plt.rcParams['svg.fonttype'] = 'none'
-    plt.savefig(save_path, format='svg', Transparent=True,
-                dpi=300, bbox_inches='tight')
-    plt.close()
-    data_file_path = save_path.with_suffix('.hdf5')
-    with h5py.File(data_file_path, 'w') as f:
-        column_keys = np.array(['time', 'survival', 'upper_ci', 'lower_ci'], dtype='S')
-        group_survival_curve = f.create_group('survival_curve')
-        group_survival_curve.create_dataset('column_keys', column_keys.shape,
-                                            column_keys.dtype, column_keys)
-        surv_data = np.stack([time, surv, upper_ci, lower_ci])
-        group_survival_curve.create_dataset('data', surv_data.shape,
-                                            'f', surv_data)
-        # group_exp_model = f.create_group('exp_model')
-        # group_exp_model.create_dataset('k', (1,), 'f', k)
-        # group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
-        group_exp_model = f.create_group('bi_exp_model')
-        group_exp_model.create_dataset('param', (3,), 'f', param)
+        ax.set_ylim((0, 1.05))
+        ax.set_xlim((0, surv['time'].iloc[-1]))
+        ax.set_xlabel('Time (s)', fontsize=14)
+        ax.set_ylabel('Survival probability', fontsize=14)
+        plt.rcParams['svg.fonttype'] = 'none'
+        fig.savefig(save_fig_path, format='svg',
+                    dpi=300, bbox_inches='tight')
+        plt.close()
 
 
-def plot_survival_curve(kmf: KaplanMeierFitter,
-                        exf: ExponentialFitter,
-                        state: int,
-                        stat_counts: Tuple[int, int, int],
-                        save_path: Path,
-                        x_right_lim: float = None):
-    on_off_str = ['on', 'off']
-    obs_off_str = ['obs', 'off']
-    ax = kmf.plot_survival_function()
-    exf.plot_survival_function(ax=ax, ci_show=False)
-    ax.get_legend().remove()
-    plt.xlabel(r'$\tau_{{{}}}$ (s)'.format(on_off_str[state]), fontsize=16)
-    plt.ylabel('probability', fontsize=16)
-    k_str = r'$k_{{{}}}$ = {:.1f} s'.format(obs_off_str[state], exf.lambda_)
-    string = '{}, {}, {}'.format(*stat_counts)
-    plt.text(0.6, 0.8, k_str, transform=ax.transAxes, fontsize=14)
-    plt.text(0.6, 0.6, string, transform=ax.transAxes, fontsize=14)
-    plt.xlim(left=0)
-    if x_right_lim is not None:
-        plt.xlim(right=x_right_lim)
-    plt.ylim((0, 1))
+    def to_hdf5(self, path: Path):
+        with h5py.File(path, 'w') as f:
+            column_keys = np.array(['time', 'survival', 'upper_ci', 'lower_ci'], dtype='S')
+            group_survival_curve = f.create_group('survival_curve')
+            group_survival_curve.create_dataset('column_keys', column_keys.shape,
+                                                column_keys.dtype, column_keys)
+            surv_data = self.survival_curve.to_numpy()
+            group_survival_curve.create_dataset('data', surv_data.shape,
+                                                'f', surv_data)
+            group_exp_model = f.create_group('bi_exp_model')
+            group_exp_model.create_dataset('param', (3,), 'f', self.param)
 
-    plt.rcParams['svg.fonttype'] = 'none'
-    plt.savefig(save_path, format='svg', Transparent=True,
-                dpi=300, bbox_inches='tight')
-
-    plt.close()
+    def to_npz(self, path: Path):
+        np.savez(path,
+                 data=self.data.to_records(),
+                 survival_curve=self.survival_curve.to_records(),
+                 model=np.array([self.model], dtype='U10'),
+                 param=self.param)
 
 
 def read_time_offset(parameter_file_path: Path, sheet: str):
-    dfs = pd.read_excel(parameter_file_path, sheet_name=sheet)
+    dfs = utils.read_excel(parameter_file_path, sheet_name=sheet)
     return dfs['time offset'][0]
 
 
-def read_interval_data(parameter_file_path: Path,
-                       datapath: Path,
-                       sheet: str,
-                       state_category: str,
-                       first_only: bool = False):
-    dfs = pd.read_excel(parameter_file_path, sheet_name=sheet)
-    if first_only:
-        n_files = 1
-    else:
-        n_files = dfs.shape[0]
-    interval_list = []
-    n_good_traces = 0
-    for iFile in range(0, n_files):
-        filestr = dfs.filename[iFile]
-        try:
-            all_data, AOI_categories = binding_kinetics.load_all_data(datapath
-                                                                      / (filestr + '_all.json'))
-        except FileNotFoundError:
-            print('{} file not found'.format(filestr))
-            continue
+class Intervals:
+    def __init__(self):
+        self.data = None
+        self.aoi_category = dict()
+        self.max_time = 0
+        self.excluded_aois = tuple()
+        self.time_offset = 0
 
-        print(filestr + ' loaded')
-        if state_category in AOI_categories['analyzable']:
-            aoi_list = AOI_categories['analyzable'][state_category]
-            n_good_traces += len(aoi_list)
-            interval_list.append(all_data['intervals'].sel(AOI=aoi_list))
-    max_time = all_data['data'].time.values.max()
-    return interval_list, n_good_traces, max_time
+    @classmethod
+    def from_all_file(cls, all_file_path: Path) -> 'Intervals':
+        intervals = cls()
+        all_data, intervals.aoi_category = binding_kinetics.load_all_data(all_file_path)
+        intervals.data = all_data['intervals']
+        intervals.max_time = all_data['data'].time.values.max()
+        return intervals
+
+    def exclude_aois(self, aoi_numbers: Tuple[int]):
+        self.excluded_aois = aoi_numbers
+
+    def count(self, option: str) -> int:
+        pass
+
+    def _get_aoi_idx(self, category: str) -> Tuple[int]:
+        idx_list = [i for i in self.aoi_category['analyzable'][category]
+                    if i not in self.excluded_aois]
+        return tuple(idx_list)
+
+    def count_flat_zero_traces(self):
+        return len(self._get_aoi_idx(category='0'))
+
+    def get_two_state_first_event_time(self):
+        two_state_aoi = self._get_aoi_idx(category='1')
+        first_intervals = self.data.sel(interval_number=0, AOI=list(two_state_aoi))
+        left_censored = first_intervals.state_number == 1
+        dwells = first_intervals['duration'].to_dataset()
+        dwells['duration'] = xr.where(left_censored, 0, dwells['duration']) + self.time_offset
+        dwells['event_observed'] = np.logical_not(left_censored)
+        return dwells
+
+    def set_time_offset(self, value):
+        self.time_offset = float(value)
+
+    def get_max_time(self):
+        return self.max_time + self.time_offset
+
+    def get_two_state_dwell_time(self, state: int):
+        out_list = []
+        for iaoi in self.aoi_category['analyzable']['1']:
+            if iaoi not in self.excluded_aois:
+                i_aoi_intervals = self.data.sel(AOI=iaoi)
+                valid_intervals = i_aoi_intervals.where(
+                    np.logical_not(np.isnan(i_aoi_intervals.duration)),
+                    drop=True)
+
+                if len(valid_intervals.duration) != 0:
+                    valid_intervals = valid_intervals.assign({'event_observed' :('interval_number', np.ones(len(valid_intervals.interval_number)))})
+
+                    valid_intervals['event_observed'][[0, -1]] = 0
+                    i_dwell = valid_intervals[['duration', 'event_observed']].where(valid_intervals.state_number == state,
+                                                                                    drop=True)
+
+                    i_dwell['event_observed'] = i_dwell['event_observed'].astype(bool)
+                    i_dwell = i_dwell.reset_index('interval_number')
+
+
+                    out_list.append(i_dwell)
+
+        out = xr.concat(out_list, dim='interval_number')
+
+        return out
 
 
 def main():
     """main function"""
     xlsx_parameter_file_path = imscrollIO.get_xlsx_parameter_file_path()
-    sheet_list = imscrollIO.input_sheets_for_analysis()
-    # find_two_state_dwell_time(xlsx_parameter_file_path, sheet_list)
-    find_first_dwell_time(xlsx_parameter_file_path, sheet_list)
+    datapath = imscrollIO.def_data_path()
+    dfs = utils.read_excel(xlsx_parameter_file_path, sheet_name='all')
+    for filestr in dfs['filename']:
+        try:
+            find_on_off_rate(filestr, datapath, dfs)
+        except ValueError as e:
+            print(repr(e))
+            continue
 
 
 if __name__ == '__main__':
