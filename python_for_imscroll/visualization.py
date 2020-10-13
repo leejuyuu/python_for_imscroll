@@ -185,7 +185,43 @@ def plot_error_and_linear_fit(x, y, y_err, fit_result: dict,
     ax.text(0.05, 0.8, r'$R^2 = {:.5f}$'.format(fit_result['r_squared']),
             transform=ax.transAxes, fontsize=8)
     # plt.rcParams['svg.fonttype'] = 'none'
-    fig.savefig(save_fig_path, format='svg', Transparent=True, dpi=300, bbox_inches='tight')
+    fig.savefig(save_fig_path, format='svg', dpi=300, bbox_inches='tight')
+
+
+
+def plot_error(x, y, y_err,
+                                save_fig_path: Path = None,
+                                x_label: str = '',
+                                y_label: str = '',
+                                left_bottom_as_origin=False,
+                                y_top=None,
+                                x_right=None,
+                              x_raw=None,
+                              y_raw=None):
+    sns.set_palette(palette='muted')
+    np.random.seed(0)
+    fig, ax = plt.subplots(figsize=(4, 3))
+
+    sns.despine(fig, ax)
+    # ax.set_xticks(sorted(x))
+    ax.errorbar(x, y, yerr=y_err, marker='o', ms=5, linestyle='', capsize=2)
+    x_jitter = 0.01 * (x_raw.max()-x_raw.min()) * np.random.standard_normal(x_raw.shape)
+    ax.scatter(x=x_raw + x_jitter, y=y_raw, marker='o', color='w', edgecolors='gray', linewidth=1, s=14, zorder=3)
+    if left_bottom_as_origin:
+        ax.set_xlim(left=0)
+        ax.set_ylim(bottom=0)
+    if y_top is not None:
+        ax.set_ylim(top=y_top)
+    if x_right is not None:
+        ax.set_xlim(right=x_right)
+    if not x_label:
+        x_label = input('Enter x axis label:\n')
+    if not y_label:
+        y_label = input('Enter y axis label:\n')
+    ax.set_xlabel(x_label, fontsize=16)
+    ax.set_ylabel(y_label, fontsize=16)
+    # plt.rcParams['svg.fonttype'] = 'none'
+    fig.savefig(save_fig_path, format='svg', dpi=300, bbox_inches='tight')
 
 
 if __name__ == '__main__':

@@ -2,6 +2,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from python_for_imscroll import utils
 
 
 def main():
@@ -16,12 +17,12 @@ def main():
             # we recenter the bar
             patch.set_x(patch.get_x() + diff * .5)
 
-    filepath = Path('/home/tzu-yu/Analysis_Results/20200317/20200317_compiled_dwell_for_graph.ods')
-    dfs = pd.read_excel(filepath, engine='odf')
+    filepath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200922/0806-0922_nucleotide_compile.xlsx')
+    dfs = utils.read_excel(filepath)
     fig, ax = plt.subplots(figsize=(4.8, 4.8))
-    sns.barplot(x='nucleotide', y='tobs', data=dfs, ci='sd', capsize=0.08,edgecolor='black', fill=False, linewidth=1.5, errwidth=2)
+    sns.barplot(x='nucleotide', y='k_on', data=dfs, ci='sd', capsize=0.08,edgecolor='black', fill=False, linewidth=1.5, errwidth=2)
     change_width(ax, .5)
-    sns.stripplot(x='nucleotide', y='tobs', jitter=True, data=dfs,  marker='o', color='w', edgecolors='black', linewidth=1, s=6)
+    sns.stripplot(x='nucleotide', y='k_on', jitter=True, data=dfs,  marker='o', color='w', edgecolors='black', linewidth=1, s=6)
     ax.set_ylabel(r'$\tau_{obs}$ (s)', fontsize=18)
     ax.set_xlabel('Nucleotide', fontsize=18)
     ax.set_ylim(bottom=0)

@@ -5,31 +5,36 @@ import numpy as np
 import seaborn as sns
 import python_for_imscroll.visualization as vis
 from python_for_imscroll import fitting
+from python_for_imscroll import utils
 
 
 def main():
-    conc = 62.5*np.array([1, 2, 4, 8, 8, 2, 1, 4, 2, 4])
-    time = np.array([185.17893097,
-                     123.37271731,
-                     35.37462628,
-                     36.94108841,
-                     56.48242756,
-                     212.71951509,
-                     585.64238082,
-                     156.66647635,
-                     179.16054604,
-                     108.919274])
-    k_obs = 1/time
+    path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200922/0806-0922_conc_compile.xlsx')
+    df = utils.read_excel(path)
+
+    conc = df['x']
+    k_obs = df['k_on']
+    k_off = df['k_off']
     x = np.array(list(set(conc)))
     y = np.array([np.mean(k_obs[conc == i]) for i in x])
     y_err = np.array([np.std(k_obs[conc == i]) for i in x])
     fit_result = fitting.main(x, y, y_err)
     vis.plot_error_and_linear_fit(x, y, y_err, fit_result,
-                                  Path('/home/tzu-yu/test.svg'),
+                                  Path('/home/tzu-yu/test_obs.svg'),
                                   x_label='[PriA] (pM)',
                                   y_label=r'$k_{obs}$ (s$^{-1}$)',
                                   left_bottom_as_origin=True,
-                                  x_raw=conc, y_raw=1/time)
+                                  x_raw=conc, y_raw=k_obs)
+
+    y = np.array([np.mean(k_off[conc == i]) for i in x])
+    y_err = np.array([np.std(k_off[conc == i]) for i in x])
+    vis.plot_error(x, y, y_err,
+                                  Path('/home/tzu-yu/test_off.svg'),
+                                  x_label='[PriA] (pM)',
+                                  y_label=r'$k_{off}$ (s$^{-1}$)',
+                                  left_bottom_as_origin=True,
+                                  x_raw=conc, y_raw=k_off,
+                   y_top=0.03)
 
 
 if __name__ == '__main__':

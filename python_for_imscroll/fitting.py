@@ -23,18 +23,18 @@ def main(x, y, yerr=None):
     if len(x) != len(y):
         raise ValueError('Unequal x and y length')
     popt, _ = fit_linear(x, y, yerr=yerr)
-    r_squared = calculate_linear_r_squared(x, y, popt)
+    r_squared = calculate_linear_r_squared(x, y, [popt])
     return {'slope': popt[0],
-            'intercept': popt[1],
+            'intercept': 0,
             'r_squared': r_squared,}
 
 def fit_linear(x, y, yerr=None):
-    popt, pcov = optimize.curve_fit(f, x, y, sigma=yerr)
+    popt, pcov = optimize.curve_fit(f_no_intercept, x, y, sigma=yerr)
     return popt, pcov
 
 
 def calculate_linear_r_squared(x, y, popt):
-    residuals = y - f(x, *popt)
+    residuals = y - f_no_intercept(x, *popt)
     ss_res = np.sum(residuals ** 2)
     ss_tot = np.sum((y - np.mean(y)) ** 2)
     return 1 - (ss_res / ss_tot)
@@ -42,3 +42,7 @@ def calculate_linear_r_squared(x, y, popt):
 def f(x, a, b):
     x = np.array(x)
     return a * x + b
+
+def f_no_intercept(x, a):
+    x = np.array(x)
+    return a*x
