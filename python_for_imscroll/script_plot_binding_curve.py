@@ -14,9 +14,10 @@ from python_for_imscroll import utils
 
 def main():
     path = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20201015/20201015_colocalization_count_compile.ods')
+    plt.style.use(str(Path('./temp_style.mplstyle').resolve()))
     df = pd.read_excel(path, engine='odf')
     columns = df.columns.tolist()[1:]  # first column is the concentration
-    dates = sorted(list(set([i[:-2] for i in columns])))
+    dates = sorted(list({i[:-2] for i in columns}))
     colocalized_fraction = pd.DataFrame({date: df[date+'-2']/df[date+'-1'] for date in dates})
     x = df.iloc[:, 0].to_numpy()[:, np.newaxis] / 1000
     y = np.nanmean(colocalized_fraction, axis=1)
@@ -32,17 +33,19 @@ def main():
     print(popt)
 
 
-    sns.set_palette(palette='muted')
+    # sns.set_palette(palette='muted')
     np.random.seed(0)
-    fig, ax = plt.subplots(figsize=(4, 3))
+    # fig, ax = plt.subplots(figsize=(4, 3))
+    fig, ax = plt.subplots()
 
-    sns.despine(fig, ax)
+    # sns.despine(fig, ax)
+    ax.errorbar(x, y, yerr=y_err, marker='o', ms=2.5, elinewidth=1,linestyle='', capsize=1, zorder=2)
     line_x = np.linspace(x.min(), x.max(), 1000)
-    ax.plot(line_x, langumuir(line_x, *popt))
-    ax.errorbar(x, y, yerr=y_err, marker='o', ms=5, linestyle='', capsize=2)
+    ax.plot(line_x, langumuir(line_x, *popt), linewidth=1, zorder=0)
 
     x_jitter = 0.05 * np.random.standard_normal((len(df.index), len(dates)))
-    ax.scatter(x=(x + x_jitter).flatten(), y=colocalized_fraction.to_numpy().flatten(), marker='o', color='w', edgecolors='gray', linewidth=1, s=14, zorder=3)
+    ax.scatter(x=(x + x_jitter).flatten(), y=colocalized_fraction.to_numpy().flatten(),
+               marker='o', color='w', edgecolors='gray', linewidth=0.5, s=7, zorder=3)
     save_fig_path = path.parent / 'plot.svg'
     fig.savefig(save_fig_path, format='svg')
 
