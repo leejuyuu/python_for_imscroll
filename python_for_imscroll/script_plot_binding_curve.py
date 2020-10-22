@@ -39,14 +39,17 @@ def main():
     fig, ax = plt.subplots()
 
     # sns.despine(fig, ax)
-    ax.errorbar(x, y, yerr=y_err, marker='o', ms=2.5, elinewidth=1,linestyle='', capsize=1, zorder=2)
+    ax.errorbar(x, y, yerr=y_err, marker='o', ms=2.5, linestyle='', zorder=2)
     line_x = np.linspace(x.min(), x.max(), 1000)
-    ax.plot(line_x, langumuir(line_x, *popt), linewidth=1, zorder=0)
+    ax.plot(line_x, langumuir(line_x, *popt), zorder=0)
 
     x_jitter = 0.05 * np.random.standard_normal((len(df.index), len(dates)))
     ax.scatter(x=(x + x_jitter).flatten(), y=colocalized_fraction.to_numpy().flatten(),
                marker='o', color='w', edgecolors='gray', linewidth=0.5, s=7, zorder=3)
+    ax.set_xlabel('PriA concentration (nM)')
+    ax.set_ylabel('Colocalized\nDNA fraction')
     save_fig_path = path.parent / 'plot.svg'
+    # plt.show()
     fig.savefig(save_fig_path, format='svg')
 
 
