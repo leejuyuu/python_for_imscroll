@@ -48,6 +48,8 @@ def main():
                marker='o', color='w', edgecolors='gray', linewidth=0.5, s=7, zorder=3)
     ax.set_xlabel('PriA concentration (nM)')
     ax.set_ylabel('Colocalized\nDNA fraction')
+    ax.set_ylim(bottom=0)
+    ax.text(0.5, 0.4, r'$K_d$ = {:.1f} pM'.format(popt[1]*1000), transform=ax.transAxes)
     save_fig_path = path.parent / 'plot.svg'
     # plt.show()
     fig.savefig(save_fig_path, format='svg')
