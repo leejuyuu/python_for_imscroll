@@ -1,0 +1,25 @@
+figure.figsize: 2.5, 1.5
+# figure.autolayout : True
+
+figure.constrained_layout.use: True
+figure.constrained_layout.w_pad: 0.15
+axes.spines.top: False
+axes.spines.right: False
+axes.labelsize: 7
+
+font.family: roboto
+font.size: 7
+
+# # Seaborn muted palette
+# axes.prop_cycle: cycler('color', ['4878CF', '6ACC65', 'D65F5F', 'B47CC7', 'C4AD66', '77BEDB'])
+# patch.facecolor: 4878CF
+
+lines.linewidth: 0.4
+errorbar.capsize: 1
+# errorbar.ms: 1
+
+xtick.labelsize: 7
+ytick.labelsize: 7
+
+savefig.format: svg
+# savefig.pad_inches: 0
