@@ -21,10 +21,16 @@ def main():
     y_err = np.nanstd(colocalized_fraction, axis=1)
     langumuir = lambda x, A, Kd: A*x/(Kd+x)
 
-    ini_A = y.max()
-    ini_Kd = x[np.argmin(np.abs(y - ini_A/2))].item()
+    x_all = np.tile(x, (1, len(dates))).flatten()
+    y_all = colocalized_fraction.to_numpy().flatten()
+    is_not_nan = np.logical_not(np.isnan(y_all))
+    x_all = x_all[is_not_nan]
+    y_all = y_all[is_not_nan]
 
-    popt, _ = scipy.optimize.curve_fit(langumuir, x.squeeze(), y, p0=[ini_A, ini_Kd], sigma=y_err)
+    ini_A = y_all.max()
+    ini_Kd = x_all[np.argmin(np.abs(y_all - ini_A/2))].item()
+
+    popt, _ = scipy.optimize.curve_fit(langumuir, x_all, y_all, p0=[ini_A, ini_Kd])
     print(popt)
 
 
