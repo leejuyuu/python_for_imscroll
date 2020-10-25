@@ -4,6 +4,7 @@ import numpy as np
 from skimage import exposure
 import skimage.io
 from python_for_imscroll import binding_kinetics
+import python_for_imscroll.image_processing as imp
 
 
 def load_image_one_frame(frame, header_file_path):
@@ -41,11 +42,12 @@ def read_coordinate_sequences(int_corrected_path, channel):
 
 def main():
     aoi = 7
-    # datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
-    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317imscroll/')
-    # header_file_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/header.mat')
-    header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/header.mat')
-    filestr = 'L5_02_03'
+    datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
+    # datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317imscroll/')
+    image_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/')
+    image_sequence = imp.ImageSequence(image_path)
+    # header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/header.mat')
+    filestr = 'L2'
     int_corrected_path = datapath / (filestr + '_intcorrected.dat')
     try:
         all_data, AOI_categories = binding_kinetics.load_all_data(datapath
@@ -78,13 +80,14 @@ def main():
             out[:, spacer_list, :] = 150
             for i, frame in enumerate(range(event_end-2, event_end + 4)):
                 coord = np.round(green_coord_aoi[frame, :]) - 1
-                img = load_image_one_frame(frame + 1, header_file_path)
+                # img = load_image_one_frame(frame + 1, header_file_path)
+                img = image_sequence.get_one_frame(frame)
                 dia = 11
                 x = int(coord[0])
                 y = int(coord[1])
                 rad = int((dia-1)/2)
-                print(x, y)
-                print(img.shape)
+                # print(x, y)
+                # print(img.shape)
                 sub_img = img[y - rad:y + rad + 1,
                               x - rad:x + rad + 1]
                 im = exposure.rescale_intensity(sub_img,
@@ -103,5 +106,4 @@ def main():
 
 
 if __name__ == '__main__':
-    header_file_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00774/header.mat')
     main()
