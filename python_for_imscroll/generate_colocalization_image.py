@@ -5,6 +5,7 @@ from skimage import exposure
 import skimage.io
 from python_for_imscroll import binding_kinetics
 import python_for_imscroll.image_processing as imp
+import python_for_imscroll.script_colocalization_snapshot_image as smodule
 
 
 def load_image_one_frame(frame, header_file_path):
@@ -35,19 +36,24 @@ def read_coordinate_sequences(int_corrected_path, channel):
     n_frames = int(max(aoifits_array[:, 1]))
     n_aoi = int(max(aoifits_array[:, 0]))
     coords = np.reshape(coords, (n_frames, n_aoi, 2))
-    print(coords[0])
+    # print(coords[0])
     coords = np.swapaxes(coords, 1, 2)
+    # breakpoint()
     return coords
 
 
+
 def main():
-    aoi = 7
-    datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
-    # datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317imscroll/')
-    image_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/')
+    aoi = 49
+    # datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
+    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200922/20200922imscroll/')
+    # image_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/')
+    image_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200922/L1_GstPriA_125pM/hwligroup01297/')
     image_sequence = imp.ImageSequence(image_path)
+    header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200922/L1_GstPriA_125pM/hwligroup01297/header.mat')
     # header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/header.mat')
-    filestr = 'L2'
+    filestr = 'L1'
+    framestart = 32
     int_corrected_path = datapath / (filestr + '_intcorrected.dat')
     try:
         all_data, AOI_categories = binding_kinetics.load_all_data(datapath
@@ -64,11 +70,11 @@ def main():
 
     state_sequence = channel_data['viterbi_path'].sel(state='label', AOI=aoi)
     state_start_index = binding_kinetics.find_state_end_point(state_sequence)
-    print(state_start_index)
+    print(len(state_start_index))
     if state_start_index.any():
         for event_end in state_start_index:
             spacer = 1
-            out = np.zeros((11, 11*6+5*spacer, 3), dtype='uint8')
+            out = np.zeros((11, 11*6+5*spacer), dtype='uint8')
             spacer_list = []
             a = np.arange(spacer)
             for i in range(5):
@@ -77,30 +83,34 @@ def main():
                 a += spacer
             
             
-            out[:, spacer_list, :] = 150
+            out[:, spacer_list] = 150
             for i, frame in enumerate(range(event_end-2, event_end + 4)):
                 coord = np.round(green_coord_aoi[frame, :]) - 1
                 # img = load_image_one_frame(frame + 1, header_file_path)
-                img = image_sequence.get_one_frame(frame)
+                img = image_sequence.get_one_frame(frame+framestart)
+                scale = smodule.quickMinMax(img)
+                print(scale)
+                scale = (650, 1600)
                 dia = 11
-                x = int(coord[0])
-                y = int(coord[1])
+                y = int(coord[0])
+                x = int(coord[1])
                 rad = int((dia-1)/2)
                 # print(x, y)
                 # print(img.shape)
                 sub_img = img[y - rad:y + rad + 1,
                               x - rad:x + rad + 1]
+
                 im = exposure.rescale_intensity(sub_img,
-                                           in_range=(700, 2500),
+                                           in_range=scale,
                                            out_range='uint8')
-                print(sub_img.shape)
-                arr = np.zeros((*sub_img.shape, 3), dtype='uint8')
-                print(arr.shape)
-                arr[:, :, 1] = im
-                out[:, i * (11 + spacer):i * (11 + spacer) + 11, 1] = im
+                # print(sub_img.shape)
+                arr = np.zeros(sub_img.shape, dtype='uint8')
+                # print(arr.shape)
+                arr[:, :] = im
+                out[:, i * (11 + spacer):i * (11 + spacer) + 11] = im
             save_path = datapath / '{}_{}_{:.0f}.png'.format(filestr,
                                                                 aoi,
-                                                                channel_data.time[event_end].item())
+                                                                channel_data.time[event_end].item()+24.226)
             skimage.io.imsave(save_path, out)
 
 
