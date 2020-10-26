@@ -37,10 +37,10 @@ def main():
     fig.text(0.04, 0.4, 'Intensity', ha='center', rotation='vertical')
     ax.set_xlabel('Time (s)')
     if time_offset:
-        plt.savefig(save_dir / ('molecule{},{}_shifted.{}'.format(*aois, '.svg')),
+        plt.savefig(save_dir / ('molecule{},{}_shifted.{}'.format(*aois, 'svg')),
                     format='svg')
     else:
-        plt.savefig(save_dir / ('molecule{},{}.{}'.format(*aois, '.svg')),
+        plt.savefig(save_dir / ('molecule{},{}.{}'.format(*aois, 'svg')),
                      format='svg')
     plt.close()
 
