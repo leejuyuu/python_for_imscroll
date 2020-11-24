@@ -70,11 +70,12 @@ def main():
 
     state_sequence = channel_data['viterbi_path'].sel(state='label', AOI=aoi)
     state_start_index = binding_kinetics.find_state_end_point(state_sequence)
-    print(len(state_start_index))
+    #print(len(state_start_index))
     if state_start_index.any():
         for event_end in state_start_index:
             spacer = 1
-            out = np.zeros((11, 11*6+5*spacer), dtype='uint8')
+            out = np.zeros((11, 11*6+5*spacer), dtype='uint16') - 1
+            print(out[0])
             spacer_list = []
             a = np.arange(spacer)
             for i in range(5):
@@ -83,14 +84,14 @@ def main():
                 a += spacer
             
             
-            out[:, spacer_list] = 150
+            out[:, spacer_list] = 150 * 2**8
             for i, frame in enumerate(range(event_end-2, event_end + 4)):
                 coord = np.round(green_coord_aoi[frame, :]) - 1
                 # img = load_image_one_frame(frame + 1, header_file_path)
                 img = image_sequence.get_one_frame(frame+framestart)
                 scale = smodule.quickMinMax(img)
-                print(scale)
-                scale = (650, 1600)
+                #print(scale)
+                scale = (750, 1600-500)
                 dia = 11
                 y = int(coord[0])
                 x = int(coord[1])
@@ -102,8 +103,11 @@ def main():
 
                 im = exposure.rescale_intensity(sub_img,
                                            in_range=scale,
-                                           out_range='uint8')
-                # print(sub_img.shape)
+                                           out_range=(2**13, 2**16-1))
+                #print(im.dtype)
+                # im = exposure.rescale_intensity(im,
+                #                            out_range=(30, 255))
+                # # print(sub_img.shape)
                 arr = np.zeros(sub_img.shape, dtype='uint8')
                 # print(arr.shape)
                 arr[:, :] = im
@@ -111,6 +115,11 @@ def main():
             save_path = datapath / '{}_{}_{:.0f}.png'.format(filestr,
                                                                 aoi,
                                                                 channel_data.time[event_end].item()+24.226)
+            print(out[:,11])
+            out = skimage.util.invert(out)
+            print(out.dtype)
+           # print(out)
+            print(out[:,11])
             skimage.io.imsave(save_path, out)
 
 
