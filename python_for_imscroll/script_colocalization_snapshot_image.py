@@ -3,6 +3,7 @@ from pathlib import Path
 import skimage.exposure
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 import python_for_imscroll.image_processing as imp
 from python_for_imscroll import mapping
 
@@ -35,7 +36,7 @@ def main():
     fig, ax = plt.subplots(figsize=(2, 2))
     image = image_sequence.get_averaged_image(20, 1)
     scale = quickMinMax(image)
-    ax.imshow(image, cmap='gray', vmin=scale[0], vmax=scale[1], interpolation='nearest', origin='upper')
+    ax.imshow(image, cmap='gray_r', vmin=scale[0], vmax=scale[1]-3000, interpolation='nearest', origin='upper')
     ax.set_axis_off()
     ax.scatter(aois.get_all_x(),
                aois.get_all_y(),
@@ -43,8 +44,16 @@ def main():
                color='none',
                edgecolors='yellow',
                linewidth=1,
-               s=100,
+               s=50,
                )
+    ax.text(0.95, 0.95, 'DNA',
+            color=sns.color_palette('dark')[0],
+            fontfamily='roboto',
+            fontsize=12,
+            fontweight='medium',
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform = ax.transAxes)
     origin = np.array([320, 50]) - 0.5 # Offset by 0.5 to the edge of pixel
     size = 80
     ax.set_xlim((origin[0], origin[0] + size))
@@ -64,16 +73,24 @@ def main():
     fig, ax = plt.subplots(figsize=(2, 2))
     image = image_sequence.get_averaged_image(20, 1)
     scale = quickMinMax(image)
-    ax.imshow(image, cmap='gray', vmin=scale[0], vmax=scale[1], interpolation='nearest', origin='upper')
+    ax.imshow(image, cmap='gray_r', vmin=scale[0], vmax=scale[1], interpolation='nearest', origin='upper')
     ax.set_axis_off()
     ax.scatter(aois.get_all_x(),
                aois.get_all_y(),
                marker='s',
                color='none',
                edgecolors='yellow',
-               linewidth=0.4,
-               s=100,
+               linewidth=0.8,
+               s=50,
                linestyle=':')
+    ax.text(0.95, 0.95, 'PriA',
+            color=sns.color_palette('dark')[2],
+            fontfamily='roboto',
+            fontsize=12,
+            fontweight='medium',
+            horizontalalignment='right',
+            verticalalignment='top',
+            transform = ax.transAxes)
     ref_aoi = imp.pick_spots(image_sequence.get_averaged_image(20, 2),
                              230)
     colocalized_aois = aois.remove_aois_far_from_ref(ref_aoi, 1.5)
@@ -83,7 +100,7 @@ def main():
                color='none',
                edgecolors='yellow',
                linewidth=1,
-               s=100,
+               s=50,
                )
     origin += mapper.map_matrix[('blue', 'green')][:, 2]
     # size = 60
