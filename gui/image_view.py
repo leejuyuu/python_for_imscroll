@@ -250,6 +250,9 @@ class Model(QtCore.QObject):
                               frame=self.current_frame,
                               aoi_width=params[AOI_WIDTH_STR],
                               frame_avg=1)
+        aois = imp.glrt_peak_finding(self.image_sequence.get_averaged_image(start=self._current_frame, size=self.frame_average),
+                                     9,
+                                     threshold=params[SPOT_BRIGHTNESS_STR])
         return aois
 
     def pick_spots(self):

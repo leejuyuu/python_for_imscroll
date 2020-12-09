@@ -6,6 +6,7 @@ import scipy.io as sio
 import scipy.interpolate
 import scipy.ndimage
 import scipy.optimize
+import scipy.stats
 import numpy as np
 from tqdm import tqdm
 
@@ -499,3 +500,35 @@ def _colocalization_from_high_low_spots(aois, ref_high_aois_list, ref_low_aois_l
                                                  np.logical_and(in_range_low,
                                                                 is_colocalized[frame-1, :]))
     return is_colocalized
+
+
+def glrt_peak_finding(image, window_size, threshold=0):
+    n = window_size**2
+    box_car_kernel = np.ones((window_size, window_size)) / n
+    sigma_psf = 0.25*488/1.67/130
+    sigma_psf = 0.88
+    x_sq = ((np.arange(window_size) - (window_size-1)/2)**2)[np.newaxis]
+    gaussian_kernel = np.exp(-(x_sq+x_sq.T)/(2*sigma_psf**2))/(np.sqrt(np.pi)*sigma_psf)
+    shifted_gaussian_kernel = gaussian_kernel - gaussian_kernel.mean()
+    norm_gaussian_kernel = (shifted_gaussian_kernel**2).sum()
+    amplitude_map = scipy.ndimage.convolve(image,
+                                           shifted_gaussian_kernel,
+                                           mode='nearest') / norm_gaussian_kernel
+    move_mean_map = scipy.ndimage.convolve(image,
+                                           box_car_kernel,
+                                           mode='nearest')
+    sum_square_map = scipy.ndimage.convolve(image**2,
+                                            box_car_kernel,
+                                            mode='nearest') * n
+    a = amplitude_map**2*norm_gaussian_kernel/(sum_square_map-n*move_mean_map**2)
+    # breakpoint()
+    log_L_ratio = (n/2)*np.log(1-amplitude_map**2*norm_gaussian_kernel/(sum_square_map-n*move_mean_map**2))
+    is_peak = log_L_ratio < -scipy.stats.chi2.isf(1e-6, 1)/2
+    peak_int = np.where(is_peak, image, 0)
+    is_high = peak_int > threshold
+    cond = np.logical_and(is_peak, is_high)
+    is_local_max = np.logical_and(scipy.ndimage.maximum_filter(peak_int, size=3) == peak_int, cond)
+    y_idx, x_idx = is_local_max.nonzero()
+    peaks = np.stack((x_idx, y_idx), axis=-1)
+
+    return Aois(peaks, 0)
