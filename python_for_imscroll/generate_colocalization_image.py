@@ -44,16 +44,14 @@ def read_coordinate_sequences(int_corrected_path, channel):
 
 
 def main():
-    aoi = 49
+    aoi = 7
     # datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200228/20200228imscroll/')
-    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200922/20200922imscroll/')
+    datapath = Path('/run/media/tzu-yu/data/PriA_project/Analysis_Results/20200317/20200317imscroll/')
     # image_path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/0228/L2_GstPriA_125pM/hwligroup00775/')
-    image_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200922/L1_GstPriA_125pM/hwligroup01297/')
+    image_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/')
     image_sequence = imp.ImageSequence(image_path)
-    header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200922/L1_GstPriA_125pM/hwligroup01297/header.mat')
-    # header_file_path = Path('/run/media/tzu-yu/data/PriA_project/Expt_data/20200317/L5_GstPriA_125pM/L5_02_photobleaching_03/hwligroup00821/header.mat')
-    filestr = 'L1'
-    framestart = 32
+    filestr = 'L5_02_03'
+    framestart = 0
     int_corrected_path = datapath / (filestr + '_intcorrected.dat')
     try:
         all_data, AOI_categories = binding_kinetics.load_all_data(datapath
@@ -90,8 +88,8 @@ def main():
                 # img = load_image_one_frame(frame + 1, header_file_path)
                 img = image_sequence.get_one_frame(frame+framestart)
                 scale = smodule.quickMinMax(img)
-                #print(scale)
-                scale = (750, 1600-500)
+                # print(scale)
+                scale = (500, 3000)
                 dia = 11
                 y = int(coord[0])
                 x = int(coord[1])
@@ -115,11 +113,8 @@ def main():
             save_path = datapath / '{}_{}_{:.0f}.png'.format(filestr,
                                                                 aoi,
                                                                 channel_data.time[event_end].item()+24.226)
-            print(out[:,11])
             out = skimage.util.invert(out)
-            print(out.dtype)
            # print(out)
-            print(out[:,11])
             skimage.io.imsave(save_path, out)
 
 
