@@ -182,8 +182,8 @@ def plot_error_and_linear_fit(x, y, y_err, fit_result: dict,
     ax.text(0.05, 0.9, r'$y = {:.7f}x + {:.5f}$'.format(fit_result['slope'],
                                                        fit_result['intercept']),
             transform=ax.transAxes, fontsize=8)
-    ax.text(0.05, 0.8, r'$R^2 = {:.5f}$'.format(fit_result['r_squared']),
-            transform=ax.transAxes, fontsize=8)
+    # ax.text(0.05, 0.8, r'$R^2 = {:.5f}$'.format(fit_result['r_squared']),
+    #         transform=ax.transAxes, fontsize=8)
     # plt.rcParams['svg.fonttype'] = 'none'
     fig.savefig(save_fig_path, format='svg', dpi=300, bbox_inches='tight')
 

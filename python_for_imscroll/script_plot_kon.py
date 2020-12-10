@@ -15,10 +15,12 @@ def main():
     conc = df['x']
     k_obs = df['k_on']
     k_off = df['k_off']
+    print(np.mean(k_off))
     x = np.array(list(set(conc)))
     y = np.array([np.mean(k_obs[conc == i]) for i in x])
-    y_err = np.array([np.std(k_obs[conc == i]) for i in x])
+    y_err = np.array([np.std(k_obs[conc == i], ddof=1) for i in x])
     fit_result = fitting.main(x, y, y_err)
+    # fit_result = fitting.main(conc, k_obs)
     vis.plot_error_and_linear_fit(x, y, y_err, fit_result,
                                   Path('/home/tzu-yu/test_obs.svg'),
                                   x_label='[PriA] (pM)',
@@ -27,7 +29,7 @@ def main():
                                   x_raw=conc, y_raw=k_obs)
 
     y = np.array([np.mean(k_off[conc == i]) for i in x])
-    y_err = np.array([np.std(k_off[conc == i]) for i in x])
+    y_err = np.array([np.std(k_off[conc == i], ddof=1) for i in x])
     vis.plot_error(x, y, y_err,
                                   Path('/home/tzu-yu/test_off.svg'),
                                   x_label='[PriA] (pM)',
@@ -35,6 +37,7 @@ def main():
                                   left_bottom_as_origin=True,
                                   x_raw=conc, y_raw=k_off,
                    y_top=0.03)
+    print(np.mean(k_off)/fit_result['slope'])
 
 
 if __name__ == '__main__':
