@@ -4,7 +4,7 @@ from python_for_imscroll import binding_kinetics, visualization
 
 def main():
     plt.style.use(str(Path('./trace_style.mplstyle').resolve()))
-    datapath = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200922/20200922imscroll/')
+    datapath = Path('~/Analysis_Results/20200922/20200922imscroll/').expanduser()
     filestr = 'L1'
     aois = [49, 71]
     time_offset = 24.226

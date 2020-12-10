@@ -9,7 +9,7 @@ from python_for_imscroll import utils
 
 
 def main():
-    path = Path('/run/media/tzu-yu/linuxData/Research/PriA_project/analysis_result/20200922/0806-0922_conc_compile.xlsx')
+    path = Path('~/Analysis_Results/20201022/0806-1022_conc_compile.xlsx').expanduser()
     df = utils.read_excel(path)
 
     conc = df['x']
