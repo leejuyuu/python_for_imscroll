@@ -82,6 +82,7 @@ class ImageSequence:
         self.width = header_file['vid']['width'][0, 0].item()
         self.height = header_file['vid']['height'][0, 0].item()
         self.length = header_file['vid']['nframes'][0, 0].item()
+        self.time = header_file['vid']['ttb'][0, 0].squeeze()
 
     def get_one_frame(self, frame: int) -> np.ndarray:
         """Read image of a specific frame from the sequence.
