@@ -439,3 +439,19 @@ def test_colocalization_from_high_low_spots():
     for i_aoi in range(shifted_xy.shape[0]):
         np.testing.assert_equal(is_colocalized[:, i_aoi],
                                 atca[i_aoi, 0][:, 2])
+
+
+def test_image_group():
+    image_group = imp.ImageGroup(TEST_DATA_DIR / '20200228')
+    assert isinstance(image_group.channels, tuple)
+    assert isinstance(image_group.sequences, dict)
+    assert len(image_group.channels) == len(image_group.sequences)
+    for channel in image_group.channels:
+        assert isinstance(channel, imp.Channel)
+        assert isinstance(image_group.sequences[channel], imp.ImageSequence)
+
+def test_image_group_iter():
+    image_group = imp.ImageGroup(TEST_DATA_DIR / '20200228')
+    for channel, sequence in image_group:
+        assert isinstance(channel, imp.Channel)
+        assert isinstance(sequence, imp.ImageSequence)

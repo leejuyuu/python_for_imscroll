@@ -20,6 +20,7 @@
 
 """This module handles the processing to get data from image stacks."""
 
+from collections import namedtuple
 import itertools
 from pathlib import Path
 from typing import Union, Tuple
@@ -29,6 +30,37 @@ import scipy.ndimage
 import scipy.optimize
 import numpy as np
 from tqdm import tqdm
+
+Channel = namedtuple('Channel', ['ex', 'em'])
+
+def is_glimpse_dir(path: Path):
+    if (path.is_dir()
+        and (path / 'header.mat').exists
+        and (path / '0.glimpse').exists):
+        return True
+    return False
+
+
+class ImageGroup:
+    """Represents a Glimpse multichannel video on disk.
+
+    This class stores info about """
+
+    def __init__(self, image_group_dir: Path):
+        image_sub_dirs = [path for path in image_group_dir.iterdir() if is_glimpse_dir(path)]
+        self.sequences = dict()
+        self.channels = []
+        for image_path in image_sub_dirs:
+            image_sequence = ImageSequence(image_path)
+            channel = image_sequence.get_channel()
+            if channel in self.sequences:
+                raise ValueError('Repeated channels in glimpse group')
+            self.sequences[channel] = image_sequence
+            self.channels.append(channel)
+        self.channels = tuple(self.channels)
+
+    def __iter__(self):
+        return ((channel, self.sequences[channel]) for channel in self.channels)
 
 
 class ImageSequence:
@@ -103,6 +135,27 @@ class ImageSequence:
         for frame in range(start, start + size):
             image += self.get_one_frame(frame)
         return image / size
+
+    def get_channel(self):
+        laser_dict = {
+            'Blue 488 nm': 'blue',
+            'Green 532 nm': 'green',
+            'Red 635 nm': 'red',
+        }
+        filter_dict = {
+            'red': 'red',
+            'G572/15': 'green',
+            '3': 'mcherry',
+            'B517/20': 'blue',
+        }
+        header_file = sio.loadmat(self._image_path / 'header.mat')['vid']
+        lasers = header_file['lasers'][0, 0][0, :]
+        if np.count_nonzero(lasers) != 1:
+            raise ValueError('More than one laser is on')
+        excitation = header_file['laser_names'][0, 0][np.nonzero(lasers)].item()
+        emission = header_file['filter_names'][0, 0][header_file['filters'][0, 0][0, 0]].item()
+        return Channel(ex=laser_dict[excitation],
+                       em=filter_dict[emission])
 
 
 def conv2(v1, v2, mat, mode='same'):
