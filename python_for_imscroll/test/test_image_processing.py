@@ -59,16 +59,16 @@ def test_iter_over_image_sequece():
 
 
 def test_band_pass():
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_image.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_image.mat')
     test_image = sio.loadmat(image_path)['testImage']
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_bpass.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_bpass.mat')
     true_image = sio.loadmat(image_path)['filteredImage']
     filtered_image = imp.band_pass(test_image, 1, 5)
     np.testing.assert_allclose(true_image, filtered_image, atol=1e-12)
 
 
 def test_band_pass_real_image():
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_bpass_real_image.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_bpass_real_image.mat')
     test_image = sio.loadmat(image_path)['image']
     true_image = sio.loadmat(image_path)['filteredImage']
     filtered_image = imp.band_pass(test_image, 1, 5)
@@ -76,7 +76,7 @@ def test_band_pass_real_image():
 
 
 def test_find_peak():
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_pkfnd_71_5.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_pkfnd_71_5.mat')
     test_image = sio.loadmat(image_path)['filteredImage']
     true_peaks = sio.loadmat(image_path)['spotCoords']
     peaks = imp.find_peaks(test_image, threshold=71, peak_size=5)
@@ -87,7 +87,7 @@ def test_find_peak():
     np.testing.assert_equal(peaks, true_peaks)
 
     # Case2 with different param
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_pkfnd_1_5.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_pkfnd_1_5.mat')
     test_image = sio.loadmat(image_path)['filteredImage']
     true_peaks = sio.loadmat(image_path)['spotCoords']
     peaks = imp.find_peaks(test_image, threshold=1, peak_size=5)
@@ -99,7 +99,7 @@ def test_find_peak():
 
 
 def test_localize_centroid():
-    image_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/Imscroll/imscroll/test/test_data/test_cntrd_71_5.mat')
+    image_path = pathlib.Path(TEST_DATA_DIR / 'spot_picking/test_cntrd_71_5.mat')
     test_image = sio.loadmat(image_path)['filteredImage']
     peaks = sio.loadmat(image_path)['spotCoords'] - 1  # Minus 1 to convert to 0 based index
     true_output = sio.loadmat(image_path)['out'][:, 0:2] - 1  # First two columns are x, y coords
@@ -346,7 +346,7 @@ def test_save_load_aois():
     np.random.seed(0)
     arr = np.random.random_sample((20, 2)) * 512
     aois = imp.Aois(arr, 5, 10, 7)
-    save_path = pathlib.Path('/run/media/tzu-yu/linuxData/Git_repos/python_for_imscroll/python_for_imscroll/test/test_data/save_path/aois')
+    save_path = pathlib.Path(TEST_DATA_DIR / 'save_path/aois')
     actual_path = save_path.with_suffix('.npz')
     if actual_path.exists() and actual_path.is_file():
         actual_path.unlink()
