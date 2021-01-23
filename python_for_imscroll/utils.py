@@ -1,6 +1,6 @@
 import pandas as pd
 
-class OpenpyxlReader(pd.io.excel._openpyxl._OpenpyxlReader):
+class OpenpyxlReader(pd.io.excel._openpyxl.OpenpyxlReader):
     def __init__(self, filepath_or_buffer):
         super().__init__(filepath_or_buffer)
 
