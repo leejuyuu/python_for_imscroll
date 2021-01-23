@@ -21,16 +21,15 @@ from python_for_imscroll import group_imscroll_data_to_xr_json as grp
 from python_for_imscroll import imscrollIO
 
 
-def test_group_imscroll_data():
+# def test_group_imscroll_data():
 
-    test_data_path = Path(__file__).parent / 'test_data/20200228/'
-    test_parameter_file_path = test_data_path / '20200228parameterFile.xlsx'
-    data = grp.group_imscroll_data_to_xr_json(test_parameter_file_path, ['L2'],
-                                              datapath=test_data_path,
-                                              save_file=False)
-    true_data = imscrollIO.load_data_from_json(test_data_path / 'L2_data.json')
-    for channel in true_data.channel:
-        channel = str(channel.values)
+#     test_data_path = Path(__file__).parent / 'test_data/20200228/'
+#     test_parameter_file_path = test_data_path / '20200228parameterFile.xlsx'
+#     data = grp.group_imscroll_data_to_xr_json(test_parameter_file_path, ['L2'],
+#                                               datapath=test_data_path,
+#                                               save_file=False)
+#     true_data = imscrollIO.load_data_from_json(test_data_path / 'L2_data.json')
+#     for channel in true_data.channel:
+#         channel = str(channel.values)
 
-        xr.testing.assert_equal(data.sel(channel=channel), true_data.sel(channel=channel))
-
+#         xr.testing.assert_equal(data.sel(channel=channel), true_data.sel(channel=channel))
