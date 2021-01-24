@@ -32,3 +32,5 @@ def test_time_traces():
     for i in range(10):
         intensity = traces.get_intensity('blue', i)
         np.testing.assert_equal(intensity, correct_data+i)
+
+    traces.set_value('is_colocalized', channel='blue', time=0+i, array=fake_data+i*2)

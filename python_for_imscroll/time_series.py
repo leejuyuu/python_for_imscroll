@@ -41,14 +41,16 @@ class TimeTraces():
         if len(array) != self.n_traces:
             raise ValueError(f'Input array length ({len(array)}) does '
                              f'not match n_traces ({self.n_traces}).')
+        time_arr = self._time[channel]
         if self._data[channel] is None:
-            time_arr = self._time[channel]
             data = {variable_name: (['molecule', 'time'], np.zeros((self.n_traces, len(time_arr))))}
             self._data[channel] = xr.Dataset(data,
                                              coords={'molecule': (['molecule'], np.arange(self.n_traces)),
                                                      'time': (['time'], time_arr)})
+        elif variable_name not in self._data[channel].keys():
+            self._data[channel] = self._data[channel].assign({variable_name: (['molecule', 'time'],
+                                                                              np.zeros((self.n_traces, len(time_arr))))})
         self._data[channel][variable_name].loc[dict(time=time)] = array
-
 
     def get_state_mean_sequence(self, channel, molecule):
         data = self._data.sel(channel=channel, AOI=molecule)
