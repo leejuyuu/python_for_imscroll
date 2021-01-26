@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import scipy.interpolate
 import scipy.optimize
+import scipy.stats
 from python_for_imscroll import utils
 
 
@@ -40,7 +41,7 @@ def main():
         return np.asarray(jac_in(x, A, Kd)).T
 
 
-    popt, pcov = scipy.optimize.curve_fit(langumuir, x.squeeze(), y, sigma=y_err, p0=[ini_A, ini_Kd], jac=jac)
+    popt, pcov = scipy.optimize.curve_fit(langumuir, x_all, y_all,  p0=[ini_A, ini_Kd], jac=jac)
     print(popt)
     print(np.sqrt(np.diagonal(pcov)))
 
@@ -50,7 +51,15 @@ def main():
 
     ax.errorbar(x, y, yerr=y_err, marker='o', ms=2.5, linestyle='', zorder=2)
     line_x = np.linspace(x.min(), x.max(), 1000)
-    ax.plot(line_x, langumuir(line_x, *popt), zorder=0)
+    line_y = langumuir(line_x, *popt)
+
+    jac_opt = jac(line_x, *popt)
+    confidence_level = .95
+    alpha = 1-(1-confidence_level)/2
+    delta = scipy.stats.norm.ppf(alpha) * np.sqrt(np.diag(np.matmul(jac_opt, np.matmul(pcov, jac_opt.T))))
+    print(scipy.stats.norm.ppf(alpha))
+    ax.fill_between(line_x, line_y-delta, line_y+delta,zorder=0)
+    ax.plot(line_x, line_y, zorder=0)
 
     x_jitter = 0.05 * np.random.standard_normal((len(df.index), len(dates)))
     ax.scatter(x=(x * np.exp(x_jitter)).flatten(), y=colocalized_fraction.to_numpy().flatten(),
