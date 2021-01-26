@@ -1,5 +1,7 @@
 
 from pathlib import Path
+import autograd
+import jax
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -19,7 +21,10 @@ def main():
     x = df.iloc[:, 0].to_numpy()[:, np.newaxis] / 1000
     y = np.nanmean(colocalized_fraction, axis=1)
     y_err = np.nanstd(colocalized_fraction, axis=1, ddof=1)
-    langumuir = lambda x, A, Kd: A*x/(Kd+x)
+    # langumuir = lambda x, A, Kd: A*x/(Kd+x)
+
+    def langumuir(x, A, Kd):
+        return A*x/(Kd+x)
 
     x_all = np.tile(x, (1, len(dates))).flatten()
     y_all = colocalized_fraction.to_numpy().flatten()
@@ -30,8 +35,14 @@ def main():
     ini_A = y_all.max()
     ini_Kd = x_all[np.argmin(np.abs(y_all - ini_A/2))].item()
 
-    popt, _ = scipy.optimize.curve_fit(langumuir, x.squeeze(), y, sigma=y_err, p0=[ini_A, ini_Kd])
+    jac_in = jax.jacrev(langumuir, argnums=[1, 2])
+    def jac(x, A, Kd):
+        return np.asarray(jac_in(x, A, Kd)).T
+
+
+    popt, pcov = scipy.optimize.curve_fit(langumuir, x.squeeze(), y, sigma=y_err, p0=[ini_A, ini_Kd], jac=jac)
     print(popt)
+    print(np.sqrt(np.diagonal(pcov)))
 
 
     np.random.seed(0)
