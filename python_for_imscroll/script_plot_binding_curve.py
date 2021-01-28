@@ -58,8 +58,8 @@ def main():
     alpha = 1-(1-confidence_level)/2
     delta = scipy.stats.norm.ppf(alpha) * np.sqrt(np.diag(np.matmul(jac_opt, np.matmul(pcov, jac_opt.T))))
     print(scipy.stats.norm.ppf(alpha))
-    ax.fill_between(line_x, line_y-delta, line_y+delta,zorder=0)
-    ax.plot(line_x, line_y, zorder=0)
+    ax.fill_between(line_x, line_y-delta, line_y+delta,color='#b1c5eb',zorder=0)
+    ax.plot(line_x, line_y,color='#4878CF', zorder=0)
 
     x_jitter = 0.05 * np.random.standard_normal((len(df.index), len(dates)))
     ax.scatter(x=(x * np.exp(x_jitter)).flatten(), y=colocalized_fraction.to_numpy().flatten(),
