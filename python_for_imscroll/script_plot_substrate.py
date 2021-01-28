@@ -40,7 +40,7 @@ def main():
 
 
     np.random.seed(0)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(2.8, 1.5))
 
     def change_width(ax, new_value) :
         for patch in ax.patches :
