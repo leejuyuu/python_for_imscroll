@@ -13,7 +13,7 @@ from python_for_imscroll import utils
 
 def main():
     plt.style.use(str(Path('./temp_style.mplstyle').resolve()))
-    path = Path('/home/tzu-yu/Analysis_Results/20201224/20201224_substrate_colocalization_count_compile.ods')
+    path = Path('/home/tzu-yu/Analysis_Results/20210127/20210127_substrate_colocalization_count_compile.ods')
     df = pd.read_excel(path, engine='odf')
     columns = df.columns.tolist()[1:]  # first column is the concentration
     dates = sorted(list({i[:-2] for i in columns}))
