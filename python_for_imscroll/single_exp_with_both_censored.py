@@ -9,6 +9,7 @@ from rpy2.robjects.packages import importr
 from rpy2.robjects.conversion import localconverter
 
 import numpy as np  # numpy needs to be imported after rpy2
+import scipy.stats
 import pandas as pd
 import matplotlib.pyplot as plt
 import h5py
@@ -53,7 +54,9 @@ def call_r_survival(df: pd.DataFrame, save_path: Path):
 
     k = np.exp(-intercept)
     print('k = {}'.format(k))
-    tau_ci = np.exp(intercept + np.array([-1, 1])*log_var)
+    confidence_level = .95
+    alpha = 1-(1-confidence_level)/2
+    tau_ci = np.exp(intercept + scipy.stats.norm.ppf(alpha)*np.array([1, -1])*log_var)
     x = np.linspace(0, time[-1], int(round(time[-1]*10)))
     y = np.exp(-k*x)
 
@@ -96,6 +99,10 @@ def call_r_survival(df: pd.DataFrame, save_path: Path):
         group_exp_model = f.create_group('exp_model')
         group_exp_model.create_dataset('k', (1,), 'f', k)
         group_exp_model.create_dataset('log_variance', (1,), 'f', log_var)
+
+    a = np.append(k.item(), 1/tau_ci)
+    np.savetxt(save_path.with_suffix('.txt'), a)
+
 
 
 if __name__ == '__main__':
